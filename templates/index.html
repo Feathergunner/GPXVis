@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>GPX DATA VISUALIZER</title>
+
+	<!-- Leaflet CSS -->
+	<link
+		rel="stylesheet"
+		href="https://unpkg.com/leaflet/dist/leaflet.css">
+	<link
+		rel="stylesheet"
+		href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<h1>GPX DATA VISUALIZER</h1>
+
+<div>
+
+<div class="panel tab">
+	<button id="button_tab_howto" class="tablinks" onclick="openTab(event, 'HowTo')">How To</button>
+	<button class="tablinks" onclick="openTab(event, 'LoadData')">Database</button>
+	<button id="button_tab_routeplotter" class="tablinks" onclick="openTab(event, 'RoutePlotter')">Plot Routes on map</button>
+	<button class="tablinks" onclick="openTab(event, 'DataPlotter')">Visualize Data</button>
+</div>
+
+<div class="panel">
+	<!-- tab header -->
+	<div id="tabheader_HowTo" class="tabcontent HowTo">
+	<h2>How To</h2>
+	</div>
+
+	<div id="tabheader_LoadData" class="tabcontent LoadData">
+	<h2>Database</h2>
+	</div>
+	
+	<div id="tabheader_RoutePlotter" class="tabcontent RoutePlotter">
+	<h2>Routes Plotter</h2>
+	</div>
+	
+	<div id="tabheader_DataPlotter" class="tabcontent DataPlotter">
+	<h2>Visualize Data</h2>
+	</div>
+
+	<!-- tab content: parameter input -->
+	<div class="panel container">
+		<div class="tabcontent HowTo">
+		<div class="panel">
+			<h3>Import Data</h3>
+			1) Go to "Database" tab.<br>
+			2) Select a directory to which new gpx files are added (create a new directory if none exists)<br>
+			3) Click "Browse" and select gpx files from your filesystem.<br>
+			4) Click "Upload GPX files".
+		</div>
+
+		<div class="panel">
+			<h3>Plot Routes</h3>
+			1) Go to "Plot Routes on Map" tab.<br>
+			2) Select at least one source directory and an activity type.<br>
+			3) Specify a time intervall: activities before or after this intervall are not considered.<br>
+			4) Select a reference GPS point on the map and a maximum distance: activities further away from the reference point are not considered. Also note that the map detail level of the map widget will also be used for your map: choose a fitting detail level, e.g. 14 for running, 13 for hiking, 11-12 for cycling.<br>
+			5) Provide an optional filename.<br>
+			6) Click "Create Map".
+		</div>
+
+		<div class="panel">
+			<h3>Plot Data Visualization Graphs</h3>
+			1) Go to "Visualize Data" tab.<br>
+			2) Select at least one source directory and an activity type.<br>
+			3) Specify a time intervall: activities before or after this intervall are not considered.<br>
+			4) Choose which dimensions are plotted on x- and y-axis.<br>
+			5) Provide an optional filename.<br>
+			6) Click "Create Plot".
+		</div>
+		</div>
+
+		<div id="div_sourcedir" class="panel left-panel tabcontent LoadData RoutePlotter DataPlotter">
+			<h3 class="tabcontent RoutePlotter DataPlotter">Source Directory</h3>
+			<h3 class="tabcontent LoadData">Add new GPX files to database</h3>
+			<input type="file" id="fileInput" class="tabcontent LoadData" multiple>
+			<h4 class="tabcontent LoadData">Target directory (choose only 1):</h3>
+			<form id="form_select_dir" class="cleanpanel">
+			<div id="folderlist"></div>
+			</form>
+			<div class="tabcontent LoadData input-row">
+				Add new directory:
+				<input id="input_dirname" type="text" value="new_gpx_directory">
+				<button onclick="newDataDir()">Create Directory</button>
+			</div>
+			<button onclick="loadFolders()" class="tabcontent RoutePlotter DataPlotter">Reload GPX directories</button>
+			<button onclick="uploadFiles()" class="tabcontent LoadData">Upload GPX files</button>
+		</div>
+	
+		<div id="div_acttype" class="panel right-panel tabcontent RoutePlotter DataPlotter">
+			<h3>Activity Type</h3>
+			<form id="form_select_type" class="cleanpanel">
+			<input type="radio" id="radio_type" name="activity_type" value="running">
+			<label for="Running">Running</label><br>
+			<input type="radio" id="radio_type" name="activity_type" value="hiking">
+			<label for="Hiking">Hiking</label><br>
+			<input type="radio" id="radio_type" name="activity_type" value="cycling">
+			<label for="Cycling">Cycling</label><br>
+			<!--
+			<input type="radio" id="radio_type" name="activity_type" value="other">
+			<label for="Other">Other</label><br>
+			-->
+			</form>
+			<input type="checkbox" id="checkUnknownType">
+			Include activities with unknown type
+		</div>
+	</div>
+
+	<div id="div_daterange" class="panel tabcontent RoutePlotter DataPlotter">
+		<h3>Date Range</h3>
+		From
+		<input type="date" id="inputDateMin" value="2020-01-01">
+		until
+		<input type="date" id="inputDateMax">
+		<br>
+		<input type="checkbox" id="checkUnknownDate">
+		Include activities with unkown date
+	</div>
+
+	<div class="panel tabcontent RoutePlotter">
+	<h3>Map Settings</h3>
+	<div class="container">
+		<div class="panel left-panel">
+			<div id="map"></div>
+		</div>
+		<div class="panel right-panel">
+		<p id="coords">
+		No starting position selected.
+		</p>
+		<p>Map detail level:</p>
+		<input type="number" id="zoom", value="8" onchange="on_zoom_input_change(this.value)">
+		<br>
+		Maximum distance of start from selected position (km):
+		<br>
+		<input type="number" id="range", value="5">
+		</div>
+	</div>
+	</div>
+
+	<div class="panel tabcontent DataPlotter">
+	<h2>Plot Specification</h2>
+	<div class="container">
+		<div id="div_axis_x" class="panel left-panel">
+			<h3>x-Axis</h3>
+			<form id="form_select_axis_x">
+			Pointwise data:<br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="distance">
+			<label>Distance</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="time">
+			<label>Time</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="height">
+			<label>Height</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="height relative">
+			<label>Relative Height</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="elevation gain">
+			<label>Elevation Gain</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="slope">
+			<label>Slope</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="pace">
+			<label>Pace</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="speed">
+			<label>Speed</label><br>
+			Aggregated statistics:<br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="date">
+			<label>Date</label><br>
+			<!--
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="total distance">
+			<label>Total Distance</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="duration">
+			<label>Total Duration</label><br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="total elevation">
+			<label>Total Elevation</label><br>
+			-->
+			</form>
+		</div>
+
+		<div id="div_axis_y" class="panel right-panel">
+			<h3>y-Axis</h3>
+			<form id="form_select_axis_y">
+			Pointwise data:<br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="distance">
+			<label>Distance</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="time">
+			<label>Time</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="height">
+			<label>Height</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="height relative">
+			<label>Relative Height</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="elevation gain">
+			<label>Elevation Gain</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="slope">
+			<label>Slope</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="pace">
+			<label>Pace</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="speed">
+			<label>Speed</label><br>
+			Aggregated statistics:<br>
+			<input type="radio" id="radio_axis_x" name="axis_x_type" value="date">
+			<label>Date</label><br>
+			<!--
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="total distance">
+			<label>Total Distance</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="duration">
+			<label>Total Duration</label><br>
+			<input type="radio" id="radio_axis_y" name="axis_y_type" value="total elevation">
+			<label>Total Elevation</label><br>
+			-->
+			</form>
+		</div>
+	</div>
+	</div>
+
+	<!-- tab content: run scripts/output -->
+
+	<div class="panel tabcontent LoadData">
+		<h3>Database Entries:</h3>
+		<button onclick="rebuildDatabase()" class="tabcontent LoadData">Rebuild database</button>
+		<div id="div_database"></div>
+	</div>
+				
+	<!--<div id="button_plot_map" class="panel tabcontent RoutePlotter"> -->
+	<div class="panel tabcontent RoutePlotter DataPlotter">
+		<h3 class="tabcontent RoutePlotter">Plot Routes on Map</h3>
+		<h3 class="tabcontent DataPlotter">Plot Activity Data</h3>
+		<div class="input-row">
+			<div class="cleanpanel tabcontent RoutePlotter">
+				Filename (leave empty for generic filename based on parameters):
+				<input id="input_filename_map" type="text" value="">
+				<button onclick="runMapPlotter()">Create Map</button>
+			</div>
+			<div class="cleanpanel tabcontent DataPlotter">
+				Filename (leave empty for generic filename based on parameters):
+				<input id="input_filename_plot" type="text" value="">
+				<button onclick="runDataPlotter()">Create Plot</button>
+			</div>
+		</div>
+
+		<progress id="progressBar" style="width:100%" value="0" max="100"></progress>
+		<br>
+		<span id="progressText">0%</span>
+	</div>
+	
+	<!--
+	<div id="button_plot_data" class="panel tabcontent DataPlotter">
+		<h3>Plot Activity Data</h3>
+		<div class="input-row">
+			Filename (leave empty for generic filename):
+			<input id="input_filename_plot" type="text" value="">
+			<button onclick="runDataPlotter()">Create Plot</button>
+		</div>
+	</div>
+	-->
+
+
+
+</div>
+
+</div>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- main js -->
+<script src="{{ url_for('static', filename='js/main.js') }}">></script>
+
+</body>
+<!--
+-->
+</html>
