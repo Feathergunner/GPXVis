@@ -1,0 +1,6 @@
+__pycache__
+maps
+output
+gpxdata
+*.png
+!example_*.png
