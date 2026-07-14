@@ -4,9 +4,7 @@
 import os
 import math
 import numpy as np
-#from matplotlib import pyplot as plt
-import networkx as nx
-#from PIL import Image
+#import networkx as nx
 
 from src import OSMMapDownloader as osmmd
 from src import GPXDataManager as GPXDM
@@ -15,15 +13,6 @@ from src.SubTask import SubTask
 from src.misc_geometry import compute_angle_between_vectors, get_vector_as_mxb, project_point_on_vector, get_latlon_vector_length
 from src.misc import load_gpx_file, parse_gps_from_gpx, ensure_dir_exists
 from org import METER_PER_DEG_LAT, METER_PER_DEG_LON, NODE_MERGE_PRECISION, STRAIGHT_PATH_MAX_DEGREE
-
-#LINEWIDTH = 1
-#LINECOLOR = "red"
-#{
-#	"hiking" : red,
-#	"running" : red,
-#	"cycling" : red
-#}
-
 
 def round_gps(lat:float, lon:float, precision:int=NODE_MERGE_PRECISION):
 	'''
@@ -486,17 +475,17 @@ class RouteGraph():
 				self.add_edge(new_edge)
 		return True
 
-	### EXPORT GRAPH:
-	def get_networkx_graph(self):
-		'''
-		returns networkx-graph from nodes and edges of this graph
-
-		# todo: add node positions
-		'''
-		g = nx.Graph()
-		g.add_nodes_from([node_id for node_id in self.nodes.keys()])
-		g.add_edges_from(self.get_edges_as_nodepairs())
-		return g
+	#### EXPORT GRAPH:
+	#def get_networkx_graph(self):
+	#	'''
+	#	returns networkx-graph from nodes and edges of this graph
+	#
+	#	# todo: add node positions
+	#	'''
+	#	g = nx.Graph()
+	#	g.add_nodes_from([node_id for node_id in self.nodes.keys()])
+	#	g.add_edges_from(self.get_edges_as_nodepairs())
+	#	return g
 
 class RouteGraphConstructor(SubTask):
 	def __init__(
