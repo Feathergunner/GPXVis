@@ -3,6 +3,7 @@
 
 import os
 from matplotlib import pyplot as plt
+import matplotlib as mpl
 from PIL import Image
 
 from src import OSMMapDownloader as osmmd
@@ -158,8 +159,8 @@ class TourGraphPlotter(SubTask):
 				min_colorval = min(sum([tg.edges[edge_id].length for edge_id in split]) for split in splits)
 				max_colorval = max(sum([tg.edges[edge_id].length for edge_id in split]) for split in splits)
 			elif color_axis_key == "time":
-				min_colorval = min(sum([tg.edges[edge_id].duration for edge_id in split]) for split in splits)
-				max_colorval = max(sum([tg.edges[edge_id].duration for edge_id in split]) for split in splits)
+				min_colorval = min(sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split]) for split in splits)
+				max_colorval = max(sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split]) for split in splits)
 			elif color_axis_key == "elevation":
 				min_colorval = min(sum([tg.edges[edge_id].elevation_change for edge_id in split]) for split in splits)
 				max_colorval = max(sum([tg.edges[edge_id].elevation_change for edge_id in split]) for split in splits)
@@ -169,7 +170,7 @@ class TourGraphPlotter(SubTask):
 				if color_axis_key == "distance":
 					baseval = sum([tg.edges[edge_id].length for edge_id in split])
 				elif color_axis_key == "time":
-					baseval = sum([tg.edges[edge_id].duration for edge_id in split])
+					baseval = sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split])
 				elif color_axis_key == "elevation":
 					baseval = sum([tg.edges[edge_id].elevation_change for edge_id in split])
 				
@@ -191,7 +192,7 @@ class TourGraphPlotter(SubTask):
 			ys.append(y)
 
 			if color_axis_key is not None:
-				color = mpl.colormaps["heat"](splitcolorvals[split_id])
+				color = mpl.colormaps["jet"](splitcolorvals[split_id])
 			else:
 				color = "red"
 			plt.plot(xs, ys, c=color)
