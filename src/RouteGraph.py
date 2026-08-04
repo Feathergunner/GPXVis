@@ -6,25 +6,13 @@ import math
 import numpy as np
 #import networkx as nx
 
-from src import OSMMapDownloader as osmmd
+#from src import OSMMapDownloader as osmmd
 from src import GPXDataManager as GPXDM
 from src.SubTask import SubTask
 
-from src.misc_geometry import compute_angle_between_vectors, get_vector_as_mxb, project_point_on_vector, get_latlon_vector_length
+from src.misc_geometry import compute_angle_between_vectors, get_vector_as_mxb, project_point_on_vector, get_latlon_vector_length, round_gps
 from src.misc import load_gpx_file, parse_gps_from_gpx, ensure_dir_exists
 from org import METER_PER_DEG_LAT, METER_PER_DEG_LON, NODE_MERGE_PRECISION, STRAIGHT_PATH_MAX_DEGREE
-
-def round_gps(lat:float, lon:float, precision:int=NODE_MERGE_PRECISION):
-	'''
-	Rounds (lat,lon)-coordinates
-	precision: precision of rounded coordinates in meter
-	'''
-	decimal_prec_lat = int(math.log(METER_PER_DEG_LAT/precision)/math.log(10))+1
-	decimal_prec_lon = int(math.log(METER_PER_DEG_LON/precision)/math.log(10))+1
-	rounded_lat = round(round((METER_PER_DEG_LAT/precision)*lat)/(METER_PER_DEG_LAT/precision), decimal_prec_lat)
-	rounded_lon = round(round((METER_PER_DEG_LON/precision)*lon)/(METER_PER_DEG_LON/precision), decimal_prec_lon)
-	return (rounded_lat, rounded_lon)
-	#return (lat, lon)
 
 def get_edge_key(node_id_a, node_id_b):
 	return (min(node_id_a, node_id_b), max(node_id_a, node_id_b))
@@ -81,7 +69,25 @@ class RouteGraphNode():
 	def get_position(self):
 		return (self.get_longitude(), self.get_latitude())
 
-class RouteGraphEdge():
+class BaseGraphEdge():
+	def __init__(self):
+		self.id = -1
+		self.id_min = -1
+		self.id_max = -1
+
+	def __str__(self):
+		return "Edge "+str(self.id)+" between nodes "+str(self.id_min)+" - "+str(self.id_max)
+
+	def __repr__(self):
+		return str(self)
+
+	def get_node_list(self):
+		return [self.id_min, self.id_max]
+
+	def get_key(self):
+		return get_edge_key(self.id_min, self.id_max)
+
+class RouteGraphEdge(BaseGraphEdge):
 	'''
 	Class to represent graph edge with metadata
 	'''
@@ -99,18 +105,6 @@ class RouteGraphEdge():
 		self.count = 1
 		self.length = length
 
-	def __str__(self):
-		return "Edge "+str(self.id)+" between nodes "+str(self.id_min)+" - "+str(self.id_max)
-
-	def __repr__(self):
-		return str(self)
-
-	def get_node_list(self):
-		return [self.id_min, self.id_max]
-
-	def get_key(self):
-		return get_edge_key(self.id_min, self.id_max)
-
 class RouteGraph():
 	def __init__(self):
 		self.nodes = {}
@@ -119,18 +113,6 @@ class RouteGraph():
 		self.nodes_key_to_id = {}
 		self.edges_key_to_id = {}
 		self.basename = ""
-
-	def __str__(self):
-		_str = "Graph with "+str(len(self.nodes.keys()))+" nodes and "+str(len(self.edges.keys()))+" edges.\n"
-		_str += "Adjacencies:\n"
-		for n_id in self.adjacencies:
-			if len(self.adjacencies[n_id].keys()) == 0:
-				continue
-			_str += str(n_id)+": "
-			for nb_id in self.adjacencies[n_id].keys():
-				_str += str(nb_id)+", "
-			_str += "\n"
-		return _str
 
 	def number_of_nodes(self) -> int:
 		return len([_ for _ in self.nodes.keys()])
@@ -146,6 +128,18 @@ class RouteGraph():
 
 	def is_empty(self) -> bool:
 		return self.number_of_nodes() == 0
+
+	def __str__(self):
+		_str = "Graph with "+str(len(self.nodes.keys()))+" nodes and "+str(len(self.edges.keys()))+" edges.\n"
+		_str += "Adjacencies:\n"
+		for n_id in self.adjacencies:
+			if len(self.adjacencies[n_id].keys()) == 0:
+				continue
+			_str += str(n_id)+": "
+			for nb_id in self.adjacencies[n_id].keys():
+				_str += str(nb_id)+", "
+			_str += "\n"
+		return _str
 
 	### BASIC GRAPH MANIPULATION:
 
@@ -221,23 +215,6 @@ class RouteGraph():
 		for edge_id in self.edges:
 			edges.append(self.edges[edge_id].get_node_list())
 		return edges
-
-	'''
-	def compute_edge_length(self):
-		lengths = []
-		for e_key in self.edges:
-			e = self.edges[e_key]
-			u = self.nodes[e.id_min]
-			v = self.nodes[e.id_max]
-			d_lat = abs(u.get_latitude() - v.get_latitude())
-			d_lon = abs(u.get_longitude() - v.get_longitude())
-			dx = d_lon*METER_PER_DEG_LON
-			dy = d_lat*METER_PER_DEG_LAT
-			self.edges[e_key].length = math.sqrt(dx**2 + dy**2)
-			lengths.append(self.edges[e_key].length)
-			#lengths.append(math.sqrt(dx**2 + dy**2))
-		print("node_distances:",np.mean(lengths))
-	'''
 
 	### SIMPLIFY GRAPH BY MERGING REDUNDANT NODES/EDGES
 	### GRAPH MANIPULATION BASED ON ROUTE GPX-DATA:

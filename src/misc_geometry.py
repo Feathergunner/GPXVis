@@ -6,7 +6,7 @@ import math
 import numpy as np
 from matplotlib import pyplot as plt
 
-from org import METER_PER_DEG_LAT, METER_PER_DEG_LON
+from org import METER_PER_DEG_LAT, METER_PER_DEG_LON, NODE_MERGE_PRECISION
 
 def compute_angle_between_vectors(v1:tuple, v2:tuple) -> float:
 	'''
@@ -50,6 +50,17 @@ def get_latlon_vector_length(d_lat:float, d_lon:float) -> float:
 	dx = d_lat*METER_PER_DEG_LAT
 	dy = d_lon*METER_PER_DEG_LON
 	return np.linalg.norm([dx,dy],2)
+
+def round_gps(lat:float, lon:float, precision:int=NODE_MERGE_PRECISION):
+	'''
+	Rounds (lat,lon)-coordinates
+	precision: precision of rounded coordinates in meter
+	'''
+	decimal_prec_lat = int(math.log(METER_PER_DEG_LAT/precision)/math.log(10))+1
+	decimal_prec_lon = int(math.log(METER_PER_DEG_LON/precision)/math.log(10))+1
+	rounded_lat = round(round((METER_PER_DEG_LAT/precision)*lat)/(METER_PER_DEG_LAT/precision), decimal_prec_lat)
+	rounded_lon = round(round((METER_PER_DEG_LON/precision)*lon)/(METER_PER_DEG_LON/precision), decimal_prec_lon)
+	return (rounded_lat, rounded_lon)
 
 def test_projection():
 	def _test_representation(p1, p2):
