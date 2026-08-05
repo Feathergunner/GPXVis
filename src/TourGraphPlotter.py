@@ -1,7 +1,9 @@
 #!usr/bin/python
 # -*- coding: utf-8 -*-import string
 
+import io
 import os
+import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 from PIL import Image
@@ -141,7 +143,7 @@ class TourGraphPlotter(SubTask):
 		if split_type not in ["distance", "time"]:
 			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
 		if color_axis_key is not None and color_axis_key not in ["distance", "time", "elevation"]:
-			raise ValueError("color_axis_key has to be \'None\' or one of \"distance\", \"time\"!")	
+			raise ValueError("color_axis_key has to be \'None\' or one of \"distance\", \"time\", \"elevation\"!")	
 		if create_animation:
 			ensure_dir_exists(os.path.join("output","maps","animate_tmp"))
 
@@ -179,6 +181,7 @@ class TourGraphPlotter(SubTask):
 		#	splitcolorvals = ["red" * len(splits)]
 
 		# plot:
+		#fig, ax = plt.subplots(figsize=(dim/self.dpi, dim/self.dpi), dpi=self.dpi)
 		for split_id in range(len(splits)):
 			split = splits[split_id]
 			xs = []
@@ -192,17 +195,39 @@ class TourGraphPlotter(SubTask):
 			ys.append(y)
 
 			if color_axis_key is not None:
-				color = mpl.colormaps["jet"](splitcolorvals[split_id])
+				color = mpl.colormaps["turbo_r"](splitcolorvals[split_id])
 			else:
 				color = "red"
-			plt.plot(xs, ys, c=color)
+
+			#ax.plot(xs, ys, c=color)
+			plt.plot(xs, ys, c=color, linewidth=5)
 
 			if create_animation:
+				# crop image to current position:
+				dim = 512
+				x_min = int(xs[-1] - dim/2)
+				x_max = int(xs[-1] + dim/2)
+				y_min = int(ys[-1] + dim/2)
+				y_max = int(ys[-1] - dim/2)
+
+				#ax.set_xlim(x_min, x_max)
+				#ax.set_ylim(y_min, y_max)
+				#ax.set_axis_off()
+				#plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+				#tmp_outputpath = os.path.join("output","maps","animate_tmp", "tmp_"+str(split_id)+".png")
+				#plt.savefig(tmp_outputpath, dpi=self.dpi, pad_inches=0)
+				#plt.close()
+
+				#print (x_max-x_min)
+				#print (y_min-y_max)
+				plt.xlim(x_min, x_max)
+				plt.ylim(y_min, y_max)
+
 				# save intermediate image:
 				plt.tight_layout()
 				plt.axis('off')
 				tmp_outputpath = os.path.join("output","maps","animate_tmp", "tmp_"+str(split_id)+".png")
-				plt.savefig(tmp_outputpath, bbox_inches='tight', pad_inches=0, dpi=self.dpi)
+				plt.savefig(tmp_outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
 
 		plt.tight_layout()
 		plt.axis('off')

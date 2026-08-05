@@ -118,8 +118,6 @@ class TourGraph():
 		if splitdistance is None and splittime is None:
 			splitdistance = 100
 
-		print (splitdistance)
-
 		# init list of splits:
 		splits = []
 		current_edge_id = 0
