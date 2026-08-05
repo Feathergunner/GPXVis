@@ -53,6 +53,7 @@ class TourGraphEdge(BaseGraphEdge):
 			self.id_end = node_b.id
 			self.duration = 0
 			self.elevation_change = elevation_b-elevation_a
+		self.elevation_avg = (elevation_a + elevation_b)/2
 
 
 class TourGraph():
@@ -120,19 +121,29 @@ class TourGraph():
 
 		# init list of splits:
 		splits = []
-		current_edge_id = 0
+		splits.append({
+			"edge_ids" : [0],
+			"distance" : self.edges[0].length,
+			"time" : self.edges[0].duration.total_seconds(),
+			"speed" : self.edges[0].length/self.edges[0].duration.total_seconds(),
+			"elevation_change" : self.edges[0].elevation_change,
+			"elevation_avg" : self.edges[0].elevation_avg
+			})
+		current_edge_id = 1
 		while current_edge_id < self.number_of_edges():
-			new_split = []
+			new_split_edges = []
 			split_dist = 0
 			split_time = 0
 			split_elevation_change = 0
+			split_sum_of_elevations = 0
 
 			add_next_edge = True
 			while (add_next_edge and current_edge_id < self.number_of_edges()):
-				new_split.append(current_edge_id)
+				new_split_edges.append(current_edge_id)
 				split_dist += self.edges[current_edge_id].length
 				split_time += self.edges[current_edge_id].duration.total_seconds()
 				split_elevation_change += self.edges[current_edge_id].elevation_change
+				split_sum_of_elevations += self.edges[current_edge_id].elevation_avg
 
 				current_edge_id += 1
 				if splitdistance is not None:
@@ -141,6 +152,13 @@ class TourGraph():
 				elif splittime > split_time:
 					add_next_edge = False
 					
-			splits.append(new_split)
+			splits.append({
+				"edge_ids" : new_split_edges,
+				"distance" : split_dist,
+				"time" : split_time,
+				"speed" : split_dist/split_time,
+				"elevation_change" : split_elevation_change,
+				"elevation_avg" : split_sum_of_elevations/len(new_split_edges)
+				})
 
 		return splits

@@ -17,10 +17,11 @@ from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
 
 LINEWIDTH = 1
 LINECOLORS = ["red", "blue", "green", "magenta"]
+VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "elevation_avg"]
 
 
 class TourGraphPlotter(SubTask):
-	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=200):
+	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=10):
 		self.tourgraphs = tourgraphs
 
 		self.zoom = zoom
@@ -102,19 +103,23 @@ class TourGraphPlotter(SubTask):
 		self.add_task_child(mapdownloader)
 
 		try:
-			#self.current_computation_description = "Downloading map"
 			mapdownloader.get_map()
 			mapimage = Image.open(mapdownloader.filepath)
 		
 			# set up figure:
-			#self.current_computation_description = "Set up map image"
 			im_x, im_y = mapimage.size
 			width_inches = im_x / (self.dpi)
 			height_inches = im_y / (self.dpi)
-			plt.figure(figsize=(width_inches, height_inches))
+			#print ("map figure dimensions:",width_inches,height_inches)
+			self.figure = plt.figure(figsize=(width_inches, height_inches), dpi=self.dpi)
 		
 			# plot map:
+			plt.tight_layout()
+			plt.axis('off')
 			plt.imshow(mapimage)
+
+			#size = self.figure.get_size_inches()*self.figure.dpi
+			#print ("size in pixel and dpi of map:", size, self.figure.dpi)
 		except FileNotFoundError:
 			print ("no map image. plot route graph without map.")
 
@@ -137,15 +142,18 @@ class TourGraphPlotter(SubTask):
 			y = rely*(osmmd.MAP_DIM_TILE*self.tile_y_range)
 		return (x, y)
 
-	def _plot_tourgraph(self, tg:TG.TourGraph, split_type:str="distance", split_size:int=100, color_axis_key:str=None, create_animation:bool=False, linewidth:int=1) -> None:
+	def _plot_tourgraph(self, tg:TG.TourGraph, split_type:str="distance", split_size:int=100, color_axis_key:str=None, create_animation:bool=False, filename:str=None) -> None:
 		print ("plot tourgraph with color_axis:", color_axis_key)
 
 		if split_type not in ["distance", "time"]:
 			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
-		if color_axis_key is not None and color_axis_key not in ["distance", "time", "elevation"]:
-			raise ValueError("color_axis_key has to be \'None\' or one of \"distance\", \"time\", \"elevation\"!")	
+		if color_axis_key is not None and color_axis_key not in VALID_COLOR_AXIS_KEYS:
+			raise ValueError("color_axis_key has to be \'None\' or one of: "+str(VALID_COLOR_AXIS_KEYS)+"!")	
 		if create_animation:
 			ensure_dir_exists(os.path.join("output","maps","animate_tmp"))
+
+		if filename is None:
+			filename = "tmp"
 
 		# construct splits:
 		splits = []
@@ -157,104 +165,95 @@ class TourGraphPlotter(SubTask):
 		# get range of colors to construct colormap
 		if color_axis_key is not None:
 			# normalize color-values:
-			if color_axis_key == "distance":
-				min_colorval = min(sum([tg.edges[edge_id].length for edge_id in split]) for split in splits)
-				max_colorval = max(sum([tg.edges[edge_id].length for edge_id in split]) for split in splits)
-			elif color_axis_key == "time":
-				min_colorval = min(sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split]) for split in splits)
-				max_colorval = max(sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split]) for split in splits)
-			elif color_axis_key == "elevation":
-				min_colorval = min(sum([tg.edges[edge_id].elevation_change for edge_id in split]) for split in splits)
-				max_colorval = max(sum([tg.edges[edge_id].elevation_change for edge_id in split]) for split in splits)
-
-			splitcolorvals = []
-			for split in splits:
-				if color_axis_key == "distance":
-					baseval = sum([tg.edges[edge_id].length for edge_id in split])
-				elif color_axis_key == "time":
-					baseval = sum([tg.edges[edge_id].duration.total_seconds() for edge_id in split])
-				elif color_axis_key == "elevation":
-					baseval = sum([tg.edges[edge_id].elevation_change for edge_id in split])
-				
-				splitcolorvals.append((baseval-min_colorval)/(max_colorval-min_colorval+1))
+			min_colorval = min(split[color_axis_key] for split in splits)
+			max_colorval = max(split[color_axis_key] for split in splits)
+			# compute color values:
+			splitcolorvals = [(split[color_axis_key]-min_colorval)/(max_colorval-min_colorval+1) for split in splits]
 		#else:
 		#	splitcolorvals = ["red" * len(splits)]
 
 		# plot:
-		#fig, ax = plt.subplots(figsize=(dim/self.dpi, dim/self.dpi), dpi=self.dpi)
+		dim_cropped = 512
+		figure_size_inches = self.figure.get_size_inches()
+		#print ("size in pixel and dpi of map:", figure_size_inches*self.figure.dpi, self.figure.dpi)
+		if create_animation:
+			# resize figure to cropped:
+			self.figure.set_size_inches(dim_cropped/self.figure.dpi, dim_cropped/self.figure.dpi)
+			#croppedfigure_size_inches = self.figure.get_size_inches()
+			#print ("size in pixel and dpi of cropped image:", croppedfigure_size_inches*self.figure.dpi, self.figure.dpi)
+			
 		for split_id in range(len(splits)):
 			split = splits[split_id]
 			xs = []
 			ys = []
-			for edge in split:
+			for edge in split["edge_ids"]:
 				(x,y) = self._get_node_xy_coords(tg, tg.edges[edge].id_begin)
 				xs.append(x)
 				ys.append(y)
-			(x,y) = self._get_node_xy_coords(tg, tg.edges[split[-1]].id_end)
+			(x,y) = self._get_node_xy_coords(tg, tg.edges[split["edge_ids"][-1]].id_end)
 			xs.append(x)
 			ys.append(y)
 
 			if color_axis_key is not None:
-				color = mpl.colormaps["turbo_r"](splitcolorvals[split_id])
+				color = mpl.colormaps["turbo"](splitcolorvals[split_id])
 			else:
 				color = "red"
 
 			#ax.plot(xs, ys, c=color)
-			plt.plot(xs, ys, c=color, linewidth=5)
+			plt.plot(xs, ys, c=color, linewidth=LINEWIDTH*100/self.dpi)
 
 			if create_animation:
 				# crop image to current position:
-				dim = 512
-				x_min = int(xs[-1] - dim/2)
-				x_max = int(xs[-1] + dim/2)
-				y_min = int(ys[-1] + dim/2)
-				y_max = int(ys[-1] - dim/2)
-
-				#ax.set_xlim(x_min, x_max)
-				#ax.set_ylim(y_min, y_max)
-				#ax.set_axis_off()
-				#plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-				#tmp_outputpath = os.path.join("output","maps","animate_tmp", "tmp_"+str(split_id)+".png")
-				#plt.savefig(tmp_outputpath, dpi=self.dpi, pad_inches=0)
-				#plt.close()
-
-				#print (x_max-x_min)
-				#print (y_min-y_max)
+				x_min = int(xs[-1] - dim_cropped/2)
+				x_max = int(xs[-1] + dim_cropped/2)
+				y_min = int(ys[-1] + dim_cropped/2)
+				y_max = int(ys[-1] - dim_cropped/2)
 				plt.xlim(x_min, x_max)
 				plt.ylim(y_min, y_max)
 
 				# save intermediate image:
 				plt.tight_layout()
 				plt.axis('off')
-				tmp_outputpath = os.path.join("output","maps","animate_tmp", "tmp_"+str(split_id)+".png")
+				tmp_outputpath = os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png")
 				plt.savefig(tmp_outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
+
+		if create_animation:
+			# reset figure size to original map size:
+			self.figure.set_size_inches(figure_size_inches)
 
 		plt.tight_layout()
 		plt.axis('off')
 
 		if create_animation:
-			filepaths = [os.path.join("output","maps","animate_tmp", "tmp_"+str(split_id)+".png") for split_id in range(len(splits))]
+			filepaths = [os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png") for split_id in range(len(splits))]
 			# Create a list of image objects
 			image_list = [Image.open(file) for file in filepaths]
 
 			# Save the first image as a GIF file
-			image_list[0].save(os.path.join("output", "maps", "animated.gif"),
+			image_list[0].save(os.path.join("output", "maps", filename+"_animated.gif"),
 			save_all=True,
 			append_images=image_list[1:], # append rest of the images
 			duration=100, # in milliseconds
 			loop=0)
+
 
 	def plot(self, split_type:str="distance", split_size:int="100", color_axis_key:str=None, create_animation:bool=False, result_filename:str=None) -> str:
 		#self.current_computation_step = "Construct map"
 		self._construct_map()
 
 		if result_filename is not None:
+			if color_axis_key is not None:
+				filename_suffix = "_"+color_axis_key
+			else:
+				filename_suffix = ""
 			# ensure filename ends with ".png"
 			if not result_filename.endswith(".png"):
-				result_filename_full = result_filename.split(".")[0]+".png"
+				result_filename += filename_suffix
+				result_filename_full = result_filename.split(".")[0]+filename_suffix+".png"
 			else:
-				result_filename_full = result_filename
-				result_filename = result_filename.split(".")[0]
+				result_filename = result_filename.split(".")[0]+filename_suffix
+				result_filename_full = result_filename+".png"
+
 			# ensure output directory exists:
 			ensure_dir_exists(os.path.join("output","maps"))
 
@@ -263,7 +262,7 @@ class TourGraphPlotter(SubTask):
 		for tg in self.tourgraphs:
 			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
 			#color = LINECOLORS[i]
-			self._plot_tourgraph(tg, split_type=split_type, split_size=split_size, color_axis_key=color_axis_key, create_animation=create_animation)
+			self._plot_tourgraph(tg, split_type=split_type, split_size=split_size, color_axis_key=color_axis_key, create_animation=create_animation, filename=result_filename)
 			i += 1
 			self.progress += 1
 
@@ -272,9 +271,14 @@ class TourGraphPlotter(SubTask):
 			outputpath = None
 		else:
 			self.current_computation_step = "Save file"
+			if create_animation:
+				# reset limits in case image was cropped for animation before
+				ax = plt.gca()  # get the current axes
+				ax.relim()      # make sure all the data fits
+				ax.autoscale()
 			# save plot
 			outputpath = os.path.join("output","maps",result_filename)
-			plt.savefig(outputpath, bbox_inches='tight', pad_inches=0, dpi=self.dpi)
+			plt.savefig(outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
 			print ("Saved map image with routes in: "+outputpath)
 			plt.close('all')
 
