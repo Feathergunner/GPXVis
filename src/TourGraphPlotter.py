@@ -143,7 +143,7 @@ class TourGraphPlotter(SubTask):
 		return (x, y)
 
 	def _plot_tourgraph(self, tg:TG.TourGraph, split_type:str="distance", split_size:int=100, color_axis_key:str=None, create_animation:bool=False, filename:str=None) -> None:
-		print ("plot tourgraph with color_axis:", color_axis_key)
+		print ("plot tourgraph with splits defined by",split_type,"with size",split_size,"and color_axis:", color_axis_key)
 
 		if split_type not in ["distance", "time"]:
 			raise ValueError("split_type has to be one of \"distance\", \"time\"!")

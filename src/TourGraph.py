@@ -149,16 +149,19 @@ class TourGraph():
 				if splitdistance is not None:
 					if split_dist > splitdistance:
 						add_next_edge = False
-				elif splittime > split_time:
+				elif split_time > splittime:
 					add_next_edge = False
 					
-			splits.append({
+			new_split = {
 				"edge_ids" : new_split_edges,
 				"distance" : split_dist,
 				"time" : split_time,
 				"speed" : split_dist/split_time,
 				"elevation_change" : split_elevation_change,
 				"elevation_avg" : split_sum_of_elevations/len(new_split_edges)
-				})
+				}
+			splits.append(new_split)
 
+		print ("Number of splits:",len(splits))
+		#print ("split sizes (edges):", [len(s[edge_ids]) for s in splits])
 		return splits
