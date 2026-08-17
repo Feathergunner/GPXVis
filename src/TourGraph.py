@@ -127,7 +127,9 @@ class TourGraph():
 			"time" : self.edges[0].duration.total_seconds(),
 			"speed" : self.edges[0].length/self.edges[0].duration.total_seconds(),
 			"elevation_change" : self.edges[0].elevation_change,
-			"elevation_avg" : self.edges[0].elevation_avg
+			"elevation_avg" : self.edges[0].elevation_avg,
+			"dist_total" : 0,
+			"time_total" : 0
 			})
 		current_edge_id = 1
 		while current_edge_id < self.number_of_edges():
@@ -158,7 +160,9 @@ class TourGraph():
 				"time" : split_time,
 				"speed" : split_dist/split_time,
 				"elevation_change" : split_elevation_change,
-				"elevation_avg" : split_sum_of_elevations/len(new_split_edges)
+				"elevation_avg" : split_sum_of_elevations/len(new_split_edges),
+				"dist_total" : splits[-1]["dist_total"] + split_dist,
+				"time_total" : splits[-1]["time_total"] + split_time
 				}
 			splits.append(new_split)
 

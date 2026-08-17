@@ -12,7 +12,7 @@ from src import OSMMapDownloader as osmmd
 from src import TourGraph as TG
 from src.SubTask import SubTask
 
-from src.misc import ensure_dir_exists
+from src.misc import ensure_dir_exists, format_time, format_time_hours
 from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
 
 LINEWIDTH = 1
@@ -111,12 +111,15 @@ class TourGraphPlotter(SubTask):
 			width_inches = im_x / (self.dpi)
 			height_inches = im_y / (self.dpi)
 			#print ("map figure dimensions:",width_inches,height_inches)
-			self.figure = plt.figure(figsize=(width_inches, height_inches), dpi=self.dpi)
+			self.figure, self.axes = plt.subplots(figsize=(width_inches, height_inches), dpi=self.dpi)
+			self.axes.set_zorder(1)
+			self.axes.set_position([0, 0, 1, 1])
+			self.axes.set_axis_off()
+			#self.figure = plt.figure(figsize=(width_inches, height_inches), dpi=self.dpi)
 		
 			# plot map:
-			plt.tight_layout()
-			plt.axis('off')
-			plt.imshow(mapimage)
+			#plt.tight_layout()
+			self.axes.imshow(mapimage)
 
 			#size = self.figure.get_size_inches()*self.figure.dpi
 			#print ("size in pixel and dpi of map:", size, self.figure.dpi)
@@ -175,13 +178,40 @@ class TourGraphPlotter(SubTask):
 		# plot:
 		dim_cropped = 512
 		figure_size_inches = self.figure.get_size_inches()
+
 		#print ("size in pixel and dpi of map:", figure_size_inches*self.figure.dpi, self.figure.dpi)
 		if create_animation:
 			# resize figure to cropped:
 			self.figure.set_size_inches(dim_cropped/self.figure.dpi, dim_cropped/self.figure.dpi)
 			#croppedfigure_size_inches = self.figure.get_size_inches()
 			#print ("size in pixel and dpi of cropped image:", croppedfigure_size_inches*self.figure.dpi, self.figure.dpi)
-			
+
+		# add height profile:
+		self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
+		total_dist = sum([split["distance"] for split in splits])
+		self.axis_profile.set_xlim([-total_dist*0.01,total_dist*1.01])
+		min_elevation = min([split["elevation_avg"] for split in splits])
+		max_elevation = max([split["elevation_avg"] for split in splits])
+		delta_elevation = max_elevation-min_elevation
+		self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.05*delta_elevation])
+		#self.axis_profile.patch.set_facecolor("red")
+		self.axis_profile.patch.set_alpha(1.0)
+		for spine in self.axis_profile.spines.values():
+			spine.set_visible(True)
+			spine.set_color("black")
+			spine.set_linewidth(LINEWIDTH*100/self.dpi)
+		self.axis_profile.set_xticks([])
+		self.axis_profile.set_yticks([])
+		profile_xs = []
+		profile_ys = []
+		self.axis_profile.text(
+			0.03, 0.95,
+			"height profile",
+			transform=self.axis_profile.transAxes,
+			fontsize=720,
+			verticalalignment="top"
+		)
+
 		for split_id in range(len(splits)):
 			split = splits[split_id]
 			xs = []
@@ -194,13 +224,21 @@ class TourGraphPlotter(SubTask):
 			xs.append(x)
 			ys.append(y)
 
+			if len(profile_xs) == 0:
+				profile_xs.append(split["distance"])
+			else:
+				profile_xs.append(profile_xs[-1]+split["distance"])
+			profile_ys.append(split["elevation_avg"])
+			#print(profile_xs, profile_ys)
+
 			if color_axis_key is not None:
 				color = mpl.colormaps["turbo"](splitcolorvals[split_id])
 			else:
 				color = "red"
 
 			#ax.plot(xs, ys, c=color)
-			plt.plot(xs, ys, c=color, linewidth=LINEWIDTH*100/self.dpi)
+			self.axes.plot(xs, ys, c=color, linewidth=LINEWIDTH*100/self.dpi)
+			self.axis_profile.plot(profile_xs, profile_ys, c="blue", linewidth=LINEWIDTH*100/self.dpi)
 
 			if create_animation:
 				# crop image to current position:
@@ -208,21 +246,37 @@ class TourGraphPlotter(SubTask):
 				x_max = int(xs[-1] + dim_cropped/2)
 				y_min = int(ys[-1] + dim_cropped/2)
 				y_max = int(ys[-1] - dim_cropped/2)
-				plt.xlim(x_min, x_max)
-				plt.ylim(y_min, y_max)
+				self.axes.set_xlim(x_min, x_max)
+				self.axes.set_ylim(y_min, y_max)
+
+				# Custom text box, positioned relative to the image
+				self.axes.text(
+					0.03, 0.97,
+					format_time(split["time_total"])+" min:sek\n"+f"{split["dist_total"]/1000:03.1f} km\n"+f"{split["speed"]*3600/1000:.1f} km/h",
+					transform=self.axes.transAxes,
+					fontsize=720,
+					verticalalignment="top",
+					bbox=dict(
+						boxstyle="round,pad=0.3",
+						facecolor="white",
+						edgecolor="black",
+						alpha=0.7
+					)
+				)
 
 				# save intermediate image:
-				plt.tight_layout()
-				plt.axis('off')
+				#plt.tight_layout()
+				self.axes.set_axis_off()
 				tmp_outputpath = os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png")
 				plt.savefig(tmp_outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
+				#plt.savefig(tmp_outputpath, pad_inches=0)#, dpi=self.dpi)
 
 		if create_animation:
 			# reset figure size to original map size:
 			self.figure.set_size_inches(figure_size_inches)
 
-		plt.tight_layout()
-		plt.axis('off')
+		#plt.tight_layout()
+		self.axes.set_axis_off()
 
 		if create_animation:
 			filepaths = [os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png") for split_id in range(len(splits))]
@@ -274,7 +328,7 @@ class TourGraphPlotter(SubTask):
 			if create_animation:
 				# reset limits in case image was cropped for animation before
 				ax = plt.gca()  # get the current axes
-				ax.relim()      # make sure all the data fits
+				ax.relim()	  # make sure all the data fits
 				ax.autoscale()
 			# save plot
 			outputpath = os.path.join("output","maps",result_filename)

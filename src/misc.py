@@ -64,11 +64,25 @@ def format_time(seconds:int) -> str:
 	'''
 	formats an int of time in seconds into a string of min:sec
 	'''
-	if seconds <= 0 or seconds is None:
+	if seconds < 0 or seconds is None:
 		return None
 	minutes = int(seconds // 60)
 	secs = int(seconds % 60)
 	return f"{minutes}:{secs:02}"
+
+def format_time_hours(seconds:int, include_seconds:bool=False) -> str:
+	'''
+	formats an int of time in seconds into a string of min:sec
+	'''
+	if seconds < 0 or seconds is None:
+		return None
+	hours = int(seconds//3600)
+	minutes = int((seconds%3600) // 60)
+	secs = int(seconds % 60)
+	if include_seconds:
+		return f"{hours}:{minutes:02}:{secs:02}"
+	else:
+		return f"{hours}:{minutes:02}"
 
 def parse_full_date(date_str:str) -> datetime.date:
 	# date_str: in format YYYY-MM-DDT....
