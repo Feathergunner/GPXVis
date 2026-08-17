@@ -21,7 +21,7 @@ VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "eleva
 
 
 class TourGraphPlotter(SubTask):
-	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=10):
+	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=1):
 		self.tourgraphs = tourgraphs
 
 		self.zoom = zoom
@@ -289,7 +289,6 @@ class TourGraphPlotter(SubTask):
 			append_images=image_list[1:], # append rest of the images
 			duration=100, # in milliseconds
 			loop=0)
-
 
 	def plot(self, split_type:str="distance", split_size:int="100", color_axis_key:str=None, create_animation:bool=False, result_filename:str=None) -> str:
 		#self.current_computation_step = "Construct map"
