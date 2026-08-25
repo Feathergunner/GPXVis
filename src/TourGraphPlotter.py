@@ -193,7 +193,13 @@ class TourGraphPlotter(SubTask):
 		min_elevation = min([split["elevation_avg"] for split in splits])
 		max_elevation = max([split["elevation_avg"] for split in splits])
 		delta_elevation = max_elevation-min_elevation
-		self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.05*delta_elevation])
+		self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.1*delta_elevation])
+
+		min_speed = min([split["speed"] for split in splits])
+		max_speed = max([split["speed"] for split in splits])
+		delta_speed = max_speed-min_speed
+		speed_scale_factor = delta_elevation/delta_speed
+
 		#self.axis_profile.patch.set_facecolor("red")
 		self.axis_profile.patch.set_alpha(1.0)
 		for spine in self.axis_profile.spines.values():
@@ -203,10 +209,11 @@ class TourGraphPlotter(SubTask):
 		self.axis_profile.set_xticks([])
 		self.axis_profile.set_yticks([])
 		profile_xs = []
-		profile_ys = []
+		profile_ys_elevation = []
+		profile_ys_speed = []
 		self.axis_profile.text(
 			0.03, 0.95,
-			"height profile",
+			"elevation profile (red) & speed (blue)",
 			transform=self.axis_profile.transAxes,
 			fontsize=720,
 			verticalalignment="top"
@@ -228,7 +235,8 @@ class TourGraphPlotter(SubTask):
 				profile_xs.append(split["distance"])
 			else:
 				profile_xs.append(profile_xs[-1]+split["distance"])
-			profile_ys.append(split["elevation_avg"])
+			profile_ys_elevation.append(split["elevation_avg"])
+			profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
 			#print(profile_xs, profile_ys)
 
 			if color_axis_key is not None:
@@ -238,7 +246,8 @@ class TourGraphPlotter(SubTask):
 
 			#ax.plot(xs, ys, c=color)
 			self.axes.plot(xs, ys, c=color, linewidth=LINEWIDTH*100/self.dpi)
-			self.axis_profile.plot(profile_xs, profile_ys, c="blue", linewidth=LINEWIDTH*100/self.dpi)
+			self.axis_profile.plot(profile_xs, profile_ys_elevation, c="red", linewidth=LINEWIDTH*100/self.dpi)
+			self.axis_profile.plot(profile_xs, profile_ys_speed, c="blue", linewidth=LINEWIDTH*100/self.dpi)
 
 			if create_animation:
 				# crop image to current position:
