@@ -4,7 +4,7 @@
 import os
 import math
 import urllib.request
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from src.SubTask import SubTask
 
@@ -114,7 +114,7 @@ class MapTile:
 
 
 class OSMMapDownloader(SubTask):
-	def __init__(self, lat_min:int, lat_max:int, lon_min:int, lon_max:int, zoom:int=MAP_DEFAULT_ZOOM, add_border:bool=False):
+	def __init__(self, lat_min:int, lat_max:int, lon_min:int, lon_max:int, zoom:int=MAP_DEFAULT_ZOOM, add_border:bool=False, route:list=None):
 		'''
 		lat_min, lat_max, lon_min, lon_max: range of latitude and longitude to be covered
 		zoom: detail level of map. zoom = 0 covers the whole world, maximum is zoom = 19.
@@ -123,6 +123,10 @@ class OSMMapDownloader(SubTask):
 		add_border: if set to True, a 1-tile wide border is added to the area.
 			This is intended for the case where one wants to make sure the map is big enough,
 			this it could happen that the specified lat/lon-coordinates are very close to a tile border
+		route: a list of (lat, lon)-coordinates. If route is not None, then ONLY those tiles are downloaded
+			that are required for the route (the logic of add_border is applied to each individual tile).
+			Therefore the returned map will most likely have empty patches,
+			but the time for downloading and creating the map is reduced.
 		'''
 		if lat_min < -180 or lat_min > 180:
 			raise ValueError("lat_min out of range [-180, 180]")
@@ -141,6 +145,7 @@ class OSMMapDownloader(SubTask):
 		self.lon_max:int = lon_max
 		self.zoom:int = zoom
 		self.add_border:bool = add_border
+		self.route:list = route
 		self._compute_maptile_coords()
 		self._compute_map_dimensions()
 		super().__init__("MapDownloader", 2+(self.n_tx*self.n_ty)//20)
@@ -193,18 +198,37 @@ class OSMMapDownloader(SubTask):
 		'''
 		Initializes maptiles.
 		'''
-		self.tiles = []
-		for ix in range(self.x_min, self.x_max+1):
-			self.tiles.append([])
-			for iy in range(self.y_min, self.y_max+1):
-				self.tiles[-1].append(MapTile(ix, iy, self.zoom))
-		#print (self.tiles)
+		# if route is specified: construct lists of required tiles:
+		self.required_tile_ids = {}
+		if self.route is not None:
+			for (lat, lon) in self.route:
+				(x,y) = latlong_to_merccoords(lat, lon, self.zoom)
+				borderdim = 0
+				if self.add_border:
+					borderdim = 1
+				tiles_this_point = []
+				for tx in range(x-borderdim, x+borderdim+1):
+					if tx not in self.required_tile_ids:
+						self.required_tile_ids[tx] = []
+					for ty in range(y-borderdim, y+borderdim+1):
+						if ty not in self.required_tile_ids[tx]:
+							self.required_tile_ids[tx].append(ty)
+		
+		self.tiles = {}
+		for tx in range(self.x_min, self.x_max+1):
+			self.tiles[tx-self.x_min] = {}
+			for ty in range(self.y_min, self.y_max+1):
+				if self.route is None or ty in self.required_tile_ids[tx]:
+					self.tiles[tx-self.x_min][ty-self.y_min] = MapTile(tx, ty, self.zoom)
 
 	def _construct_map_name(self) -> str:
 		'''
 		Constructs a name based on tile range and zoom.
 		'''
-		return "map_z:"+str(self.zoom)+"_x:"+str(self.x_min)+"-"+str(self.x_max)+"_y:"+str(self.y_min)+"-"+str(self.y_max)
+		mapname = "map_z:"+str(self.zoom)+"_x:"+str(self.x_min)+"-"+str(self.x_max)+"_y:"+str(self.y_min)+"-"+str(self.y_max)
+		if self.route is not None:
+			mapname += "_routeonly"
+		return mapname
 
 	def _download_tiles(self, ask_before_huge_download:bool=False) -> bool:
 		'''
@@ -215,7 +239,14 @@ class OSMMapDownloader(SubTask):
 
 		Returns True when all tiles are downloaded/cached.
 		'''
-		total_number_of_tiles = self.n_tx*self.n_ty
+		if self.route is None:
+			# number of tiles depends on map dimensions :
+			total_number_of_tiles = self.n_tx*self.n_ty
+		else:
+			# number of tiles has to be counted:
+			total_number_of_tiles = sum([len(self.tiles[x]) for x in self.tiles])
+		# update subtask-weight to correspond to correct number of required downloads:
+		self.weight = 2+total_number_of_tiles
 		print ("Fetching",total_number_of_tiles,"map tiles...")
 		if ask_before_huge_download and total_number_of_tiles > 1000:
 			print ("Number of tiles is very large! Proceed (Y/n)?")
@@ -224,14 +255,14 @@ class OSMMapDownloader(SubTask):
 				return False
 		elif total_number_of_tiles > 100:
 			print (" ... this may take some time.")
-		for ix in range(self.n_tx):
-			for iy in range(self.n_ty):
-				self.tiles[ix][iy].download()
-				if (ix*self.n_ty+iy)%20 == 0:
-					self.progress += 1
+		for tx in self.tiles:
+			for ty in self.tiles[tx]:
+				self.tiles[tx][ty].download()
+				# track progress:
+				self.progress += 1
 		return True
 
-	def _combine_tiles(self) -> Image:
+	def _combine_tiles(self, debug_tiles:bool=False) -> Image:
 		'''
 		Combines all tiles into a single image and saves it in DIR_MAPS
 
@@ -240,20 +271,34 @@ class OSMMapDownloader(SubTask):
 		ensure_dir_exists(DIR_MAPS)	
 		print ("Generate image of dimensions",self.n_px,"x",self.n_py)
 		mapimage = Image.new('RGB', (self.n_px, self.n_py))
+
+		draw = None
+		if debug_tiles:
+			draw = ImageDraw.Draw(mapimage)
+
 		for ix in range(self.n_tx):
 			for iy in range(self.n_ty):
-				#tile_filepath = os.path.oin(DIR_MAPS, DIR_TILE_CACHE, self.tiles[ix][iy].filename)
-				tile_image = Image.open(self.tiles[ix][iy].filepath)
-				mapimage.paste(tile_image, (ix*MAP_DIM_TILE, iy*MAP_DIM_TILE))
+				if self.route is None or (ix+self.x_min in self.required_tile_ids and iy+self.y_min in self.required_tile_ids[ix+self.x_min]):
+					#tile_filepath = os.path.oin(DIR_MAPS, DIR_TILE_CACHE, self.tiles[ix][iy].filename)
+					tile_image = Image.open(self.tiles[ix][iy].filepath)
+					mapimage.paste(tile_image, (ix*MAP_DIM_TILE, iy*MAP_DIM_TILE))
+					if debug_tiles:
+						draw.line((ix*MAP_DIM_TILE, iy*MAP_DIM_TILE, (ix+1)*MAP_DIM_TILE, iy*MAP_DIM_TILE), fill=128)
+						draw.line((ix*MAP_DIM_TILE, iy*MAP_DIM_TILE, (ix)*MAP_DIM_TILE, (iy+1)*MAP_DIM_TILE), fill=128)
+						draw.line(((ix+1)*MAP_DIM_TILE, iy*MAP_DIM_TILE, (ix+1)*MAP_DIM_TILE, (iy+1)*MAP_DIM_TILE), fill=128)
+						draw.line((ix*MAP_DIM_TILE, (iy+1)*MAP_DIM_TILE, (ix+1)*MAP_DIM_TILE, (iy+1)*MAP_DIM_TILE), fill=128)
+						draw.text((ix*MAP_DIM_TILE+10, iy*MAP_DIM_TILE+10),"("+str(ix+self.x_min)+","+str(iy+self.y_min)+")",(200,0,0))
 		return mapimage
 
-	def get_map(self, custom_filename:str=None):
+	def get_map(self, custom_filename:str=None, debug_tiles:bool=False):
 		'''
 		Downloads required tiles (if not already cached) and constructs the map.
 		If custom_filename is not specified,
 			then zoomlevel and tileranges are used to create a unique filename.
 			Also in this case it can be checked if the map already exists.
 		If a unique filename is specified, a map will always be constructed (but cached tiles will not be downloaded again).
+
+		debug_tiles: if True, map tile borders and map coordinates are plotted on the map
 		'''
 		if custom_filename is None:
 			# construct unique filename and check if map already exists:
@@ -270,7 +315,7 @@ class OSMMapDownloader(SubTask):
 
 		download_success = self._download_tiles()
 		if download_success:
-			mapimage = self._combine_tiles()
+			mapimage = self._combine_tiles(debug_tiles=debug_tiles)
 			mapimage.save(self.filepath)
 			print ("Generated map saved in: "+self.filepath)
 		else:

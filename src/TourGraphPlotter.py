@@ -21,12 +21,13 @@ VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "eleva
 
 
 class TourGraphPlotter(SubTask):
-	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=1):
+	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=1, add_profile:bool=False):
 		self.tourgraphs = tourgraphs
 
 		self.zoom = zoom
 		self.add_border = add_border
 		self.dpi = dpi
+		self.add_profile = add_profile
 		super().__init__("TourGraphPlotter", len(self.tourgraphs)+2)
 
 		# gps and maptile stats:
@@ -95,11 +96,15 @@ class TourGraphPlotter(SubTask):
 			self.tile_x_range = self.tile_x_max - self.tile_x_min
 			self.tile_y_range = self.tile_y_max - self.tile_y_min
 
-	def _construct_map(self) -> None:
+	def _construct_map(self, create_animation:bool=False) -> None:
 		# prepare stats:
 		self._construct_gps_stats()
+		# get list of (lat, lon)-coords of tour (for map construction):
+		tourcoords = None
+		if create_animation:
+			tourcoords = [(node.get_latitude(), node.get_longitude()) for node in self.tourgraphs[0].nodes]
 		# get map:
-		mapdownloader = osmmd.OSMMapDownloader(self.lat_min, self.lat_max, self.lon_min, self.lon_max, zoom=self.zoom, add_border=self.add_border)
+		mapdownloader = osmmd.OSMMapDownloader(self.lat_min, self.lat_max, self.lon_min, self.lon_max, zoom=self.zoom, add_border=self.add_border, route=tourcoords)
 		self.add_task_child(mapdownloader)
 
 		try:
@@ -187,37 +192,38 @@ class TourGraphPlotter(SubTask):
 			#print ("size in pixel and dpi of cropped image:", croppedfigure_size_inches*self.figure.dpi, self.figure.dpi)
 
 		# add height profile:
-		self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
-		total_dist = sum([split["distance"] for split in splits])
-		self.axis_profile.set_xlim([-total_dist*0.01,total_dist*1.01])
-		min_elevation = min([split["elevation_avg"] for split in splits])
-		max_elevation = max([split["elevation_avg"] for split in splits])
-		delta_elevation = max_elevation-min_elevation
-		self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.1*delta_elevation])
-
-		min_speed = min([split["speed"] for split in splits])
-		max_speed = max([split["speed"] for split in splits])
-		delta_speed = max_speed-min_speed
-		speed_scale_factor = delta_elevation/delta_speed
-
-		#self.axis_profile.patch.set_facecolor("red")
-		self.axis_profile.patch.set_alpha(1.0)
-		for spine in self.axis_profile.spines.values():
-			spine.set_visible(True)
-			spine.set_color("black")
-			spine.set_linewidth(LINEWIDTH*100/self.dpi)
-		self.axis_profile.set_xticks([])
-		self.axis_profile.set_yticks([])
-		profile_xs = []
-		profile_ys_elevation = []
-		profile_ys_speed = []
-		self.axis_profile.text(
-			0.03, 0.95,
-			"elevation profile (red) & speed (blue)",
-			transform=self.axis_profile.transAxes,
-			fontsize=720,
-			verticalalignment="top"
-		)
+		if create_animation or self.add_profile:
+			self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
+			total_dist = sum([split["distance"] for split in splits])
+			self.axis_profile.set_xlim([-total_dist*0.01,total_dist*1.01])
+			min_elevation = min([split["elevation_avg"] for split in splits])
+			max_elevation = max([split["elevation_avg"] for split in splits])
+			delta_elevation = max_elevation-min_elevation
+			self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.1*delta_elevation])
+	
+			min_speed = min([split["speed"] for split in splits])
+			max_speed = max([split["speed"] for split in splits])
+			delta_speed = max_speed-min_speed
+			speed_scale_factor = delta_elevation/delta_speed
+	
+			#self.axis_profile.patch.set_facecolor("red")
+			self.axis_profile.patch.set_alpha(1.0)
+			for spine in self.axis_profile.spines.values():
+				spine.set_visible(True)
+				spine.set_color("black")
+				spine.set_linewidth(LINEWIDTH*100/self.dpi)
+			self.axis_profile.set_xticks([])
+			self.axis_profile.set_yticks([])
+			profile_xs = []
+			profile_ys_elevation = []
+			profile_ys_speed = []
+			self.axis_profile.text(
+				0.03, 0.95,
+				"elevation profile (red) & speed (blue)",
+				transform=self.axis_profile.transAxes,
+				fontsize=720,
+				verticalalignment="top"
+			)
 
 		for split_id in range(len(splits)):
 			split = splits[split_id]
@@ -231,23 +237,23 @@ class TourGraphPlotter(SubTask):
 			xs.append(x)
 			ys.append(y)
 
-			if len(profile_xs) == 0:
-				profile_xs.append(split["distance"])
-			else:
-				profile_xs.append(profile_xs[-1]+split["distance"])
-			profile_ys_elevation.append(split["elevation_avg"])
-			profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
-			#print(profile_xs, profile_ys)
-
 			if color_axis_key is not None:
 				color = mpl.colormaps["turbo"](splitcolorvals[split_id])
 			else:
 				color = "red"
-
-			#ax.plot(xs, ys, c=color)
 			self.axes.plot(xs, ys, c=color, linewidth=LINEWIDTH*100/self.dpi)
-			self.axis_profile.plot(profile_xs, profile_ys_elevation, c="red", linewidth=LINEWIDTH*100/self.dpi)
-			self.axis_profile.plot(profile_xs, profile_ys_speed, c="blue", linewidth=LINEWIDTH*100/self.dpi)
+
+			if create_animation or self.add_profile:
+				if len(profile_xs) == 0:
+					profile_xs.append(split["distance"])
+				else:
+					profile_xs.append(profile_xs[-1]+split["distance"])
+				profile_ys_elevation.append(split["elevation_avg"])
+				profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
+				#print(profile_xs, profile_ys)
+	
+				self.axis_profile.plot(profile_xs, profile_ys_elevation, c="red", linewidth=LINEWIDTH*100/self.dpi)
+				self.axis_profile.plot(profile_xs, profile_ys_speed, c="blue", linewidth=LINEWIDTH*100/self.dpi)
 
 			if create_animation:
 				# crop image to current position:
@@ -301,7 +307,9 @@ class TourGraphPlotter(SubTask):
 
 	def plot(self, split_type:str="distance", split_size:int="100", color_axis_key:str=None, create_animation:bool=False, result_filename:str=None) -> str:
 		#self.current_computation_step = "Construct map"
-		self._construct_map()
+		self._construct_map(create_animation=create_animation)
+		# ensure output directory exists:
+		ensure_dir_exists(os.path.join("output","maps"))
 
 		if result_filename is not None:
 			if color_axis_key is not None:
@@ -316,9 +324,7 @@ class TourGraphPlotter(SubTask):
 				result_filename = result_filename.split(".")[0]+filename_suffix
 				result_filename_full = result_filename+".png"
 
-			# ensure output directory exists:
-			ensure_dir_exists(os.path.join("output","maps"))
-
+		
 		self.progress += 1
 		i = 0
 		for tg in self.tourgraphs:
@@ -328,21 +334,22 @@ class TourGraphPlotter(SubTask):
 			i += 1
 			self.progress += 1
 
-		if result_filename is None:
-			plt.show()
-			outputpath = None
-		else:
-			self.current_computation_step = "Save file"
-			if create_animation:
-				# reset limits in case image was cropped for animation before
-				ax = plt.gca()  # get the current axes
-				ax.relim()	  # make sure all the data fits
-				ax.autoscale()
-			# save plot
-			outputpath = os.path.join("output","maps",result_filename)
-			plt.savefig(outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
-			print ("Saved map image with routes in: "+outputpath)
-			plt.close('all')
+		outputpath = None
+		if not create_animation:
+			if result_filename is None:
+				plt.show()
+			else:
+				self.current_computation_step = "Save file"
+				if create_animation:
+					# reset limits in case image was cropped for animation before
+					ax = plt.gca()  # get the current axes
+					ax.relim()	  # make sure all the data fits
+					ax.autoscale()
+				# save plot
+				outputpath = os.path.join("output","maps",result_filename)
+				plt.savefig(outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
+				print ("Saved map image with routes in: "+outputpath)
+				plt.close('all')
 
 		self.finish_progress()
 		return outputpath
