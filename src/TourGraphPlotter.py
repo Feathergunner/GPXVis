@@ -19,6 +19,13 @@ LINEWIDTH = 1
 LINECOLORS = ["red", "blue", "green", "magenta"]
 VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "elevation_avg"]
 
+def fig2img(fig):
+	"""Convert a Matplotlib figure to a PIL Image and return it"""
+	buf = io.BytesIO()
+	fig.savefig(buf)
+	buf.seek(0)
+	img = Image.open(buf)
+	return img
 
 class TourGraphPlotter(SubTask):
 	def __init__(self, tourgraphs:list[TG.TourGraph], zoom:int, add_border:bool=True, dpi:int=1, add_profile:bool=False):
@@ -106,28 +113,20 @@ class TourGraphPlotter(SubTask):
 		# get map:
 		mapdownloader = osmmd.OSMMapDownloader(self.lat_min, self.lat_max, self.lon_min, self.lon_max, zoom=self.zoom, add_border=self.add_border, route=tourcoords)
 		self.add_task_child(mapdownloader)
-
 		try:
+			# load map:
 			mapdownloader.get_map()
 			mapimage = Image.open(mapdownloader.filepath)
-		
 			# set up figure:
 			im_x, im_y = mapimage.size
 			width_inches = im_x / (self.dpi)
 			height_inches = im_y / (self.dpi)
-			#print ("map figure dimensions:",width_inches,height_inches)
 			self.figure, self.axes = plt.subplots(figsize=(width_inches, height_inches), dpi=self.dpi)
 			self.axes.set_zorder(1)
 			self.axes.set_position([0, 0, 1, 1])
 			self.axes.set_axis_off()
-			#self.figure = plt.figure(figsize=(width_inches, height_inches), dpi=self.dpi)
-		
-			# plot map:
-			#plt.tight_layout()
+			# add map image:
 			self.axes.imshow(mapimage)
-
-			#size = self.figure.get_size_inches()*self.figure.dpi
-			#print ("size in pixel and dpi of map:", size, self.figure.dpi)
 		except FileNotFoundError:
 			print ("no map image. plot route graph without map.")
 
@@ -153,13 +152,15 @@ class TourGraphPlotter(SubTask):
 	def _plot_tourgraph(self, tg:TG.TourGraph, split_type:str="distance", split_size:int=100, color_axis_key:str=None, create_animation:bool=False, filename:str=None) -> None:
 		print ("plot tourgraph with splits defined by",split_type,"with size",split_size,"and color_axis:", color_axis_key)
 
+		# list of PIL images that make up the animation:
+		animation_frames = []
+
 		if split_type not in ["distance", "time"]:
 			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
 		if color_axis_key is not None and color_axis_key not in VALID_COLOR_AXIS_KEYS:
 			raise ValueError("color_axis_key has to be \'None\' or one of: "+str(VALID_COLOR_AXIS_KEYS)+"!")	
 		if create_animation:
 			ensure_dir_exists(os.path.join("output","maps","animate_tmp"))
-
 		if filename is None:
 			filename = "tmp"
 
@@ -177,19 +178,14 @@ class TourGraphPlotter(SubTask):
 			max_colorval = max(split[color_axis_key] for split in splits)
 			# compute color values:
 			splitcolorvals = [(split[color_axis_key]-min_colorval)/(max_colorval-min_colorval+1) for split in splits]
-		#else:
-		#	splitcolorvals = ["red" * len(splits)]
 
 		# plot:
 		dim_cropped = 512
 		figure_size_inches = self.figure.get_size_inches()
 
-		#print ("size in pixel and dpi of map:", figure_size_inches*self.figure.dpi, self.figure.dpi)
 		if create_animation:
 			# resize figure to cropped:
 			self.figure.set_size_inches(dim_cropped/self.figure.dpi, dim_cropped/self.figure.dpi)
-			#croppedfigure_size_inches = self.figure.get_size_inches()
-			#print ("size in pixel and dpi of cropped image:", croppedfigure_size_inches*self.figure.dpi, self.figure.dpi)
 
 		# add height profile:
 		if create_animation or self.add_profile:
@@ -206,7 +202,6 @@ class TourGraphPlotter(SubTask):
 			delta_speed = max_speed-min_speed
 			speed_scale_factor = delta_elevation/delta_speed
 	
-			#self.axis_profile.patch.set_facecolor("red")
 			self.axis_profile.patch.set_alpha(1.0)
 			for spine in self.axis_profile.spines.values():
 				spine.set_visible(True)
@@ -250,8 +245,6 @@ class TourGraphPlotter(SubTask):
 					profile_xs.append(profile_xs[-1]+split["distance"])
 				profile_ys_elevation.append(split["elevation_avg"])
 				profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
-				#print(profile_xs, profile_ys)
-	
 				self.axis_profile.plot(profile_xs, profile_ys_elevation, c="red", linewidth=LINEWIDTH*100/self.dpi)
 				self.axis_profile.plot(profile_xs, profile_ys_speed, c="blue", linewidth=LINEWIDTH*100/self.dpi)
 
@@ -280,30 +273,19 @@ class TourGraphPlotter(SubTask):
 				)
 
 				# save intermediate image:
-				#plt.tight_layout()
 				self.axes.set_axis_off()
-				tmp_outputpath = os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png")
-				plt.savefig(tmp_outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
-				#plt.savefig(tmp_outputpath, pad_inches=0)#, dpi=self.dpi)
+				# convert pyplot plot to PIL image and store in list of frames:
+				animation_frames.append(fig2img(plt.gcf()))
 
-		if create_animation:
-			# reset figure size to original map size:
-			self.figure.set_size_inches(figure_size_inches)
-
-		#plt.tight_layout()
 		self.axes.set_axis_off()
-
 		if create_animation:
-			filepaths = [os.path.join("output","maps","animate_tmp", filename+"_"+str(split_id)+".png") for split_id in range(len(splits))]
-			# Create a list of image objects
-			image_list = [Image.open(file) for file in filepaths]
-
 			# Save the first image as a GIF file
-			image_list[0].save(os.path.join("output", "maps", filename+"_animated.gif"),
-			save_all=True,
-			append_images=image_list[1:], # append rest of the images
-			duration=100, # in milliseconds
-			loop=0)
+			animation_frames[0].save(
+				os.path.join("output", "maps", filename+"_animated.gif"),
+				save_all=True,
+				append_images=animation_frames[1:], # append rest of the images
+				duration=100, # in milliseconds
+				loop=0)
 
 	def plot(self, split_type:str="distance", split_size:int="100", color_axis_key:str=None, create_animation:bool=False, result_filename:str=None) -> str:
 		#self.current_computation_step = "Construct map"
@@ -323,13 +305,11 @@ class TourGraphPlotter(SubTask):
 			else:
 				result_filename = result_filename.split(".")[0]+filename_suffix
 				result_filename_full = result_filename+".png"
-
 		
 		self.progress += 1
 		i = 0
 		for tg in self.tourgraphs:
 			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
-			#color = LINECOLORS[i]
 			self._plot_tourgraph(tg, split_type=split_type, split_size=split_size, color_axis_key=color_axis_key, create_animation=create_animation, filename=result_filename)
 			i += 1
 			self.progress += 1
@@ -339,13 +319,8 @@ class TourGraphPlotter(SubTask):
 			if result_filename is None:
 				plt.show()
 			else:
-				self.current_computation_step = "Save file"
-				if create_animation:
-					# reset limits in case image was cropped for animation before
-					ax = plt.gca()  # get the current axes
-					ax.relim()	  # make sure all the data fits
-					ax.autoscale()
 				# save plot
+				self.current_computation_step = "Save file"
 				outputpath = os.path.join("output","maps",result_filename)
 				plt.savefig(outputpath, bbox_inches='tight', pad_inches=0)#, dpi=self.dpi)
 				print ("Saved map image with routes in: "+outputpath)
