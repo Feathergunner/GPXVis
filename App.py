@@ -115,6 +115,43 @@ def add_athlete():
 		"status": "ok"
 	}
 
+@app.route("/api/delete_athletes", methods=["POST"])
+def delete_athletes():
+	athlete_ids = request.get_json().get("athlete_ids", "")
+	DBH.delete_athletes(athlete_ids)
+	return {
+		"status": "ok"
+	}
+
+@app.route("/api/delete_types", methods=["POST"])
+def delete_types():
+	activity_type_ids = request.get_json().get("activity_type_ids", "")
+	DBH.delete_types(activity_type_ids)
+	return {
+		"status": "ok"
+	}
+
+@app.route("/api/delete_activities", methods=["POST"])
+def delete_activities():
+	activity_ids = request.get_json().get("activity_ids", "")
+	DBH.delete_activities(activity_ids)
+	return {
+		"status": "ok"
+	}
+
+@app.route("/api/rename_activities", methods=["POST"])
+def rename_activities():
+	print ("rename_activities")
+	data = request.get_json()
+	activity_ids = data.get("activity_ids", "")
+	new_name = data.get("new_name", "")
+	print ("ids:", activity_ids)
+	print ("new name:", new_name)
+	DBH.rename_activities(activity_ids, new_name)
+	return {
+		"status": "ok"
+	}
+
 def get_activities_from_query(data, consider_gps):
 	athlete_ids = data.get("athlete_ids", "")
 	type_ids = data.get("type_ids", "")

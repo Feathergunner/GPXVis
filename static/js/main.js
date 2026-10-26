@@ -5,7 +5,7 @@ let mapzoom = 8;
 let map;
 let range = 5;
 
-function get_from_selection(selectionFieldName){
+function getFromSelection(selectionFieldName){
 	/*
 	get list of values from a set of checkboxes
 	*/
@@ -30,7 +30,6 @@ async function addAthlete(){
 			name: document.getElementById("input_athletename").value
 		})
 	});
-
 	location.reload();
 }
 
@@ -47,7 +46,7 @@ async function uploadFiles(){
 	// add selected athlete:
 	formData.append(
 		"athlete_id",
-		get_from_selection("athlete_id")[0]
+		getFromSelection("athlete_id")[0]
 	);
 	// add uploaded files:
 	const input = document.getElementById("fileInput");
@@ -65,7 +64,7 @@ async function uploadFiles(){
 	);
 }
 
-async function get_activities(considergps=false, addcheckbox=false, defaultchecked=false) {
+async function getActivities(considergps=false, addcheckbox=false, defaultchecked=false) {
 	/*
 	Get a set of activities from the database.
 
@@ -77,8 +76,8 @@ async function get_activities(considergps=false, addcheckbox=false, defaultcheck
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			athlete_ids: get_from_selection("athlete_id"),
-			type_ids: get_from_selection("type_id"),
+			athlete_ids: getFromSelection("athlete_id"),
+			type_ids: getFromSelection("type_id"),
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
@@ -98,20 +97,69 @@ async function get_activities(considergps=false, addcheckbox=false, defaultcheck
     document.getElementById("activity_table").outerHTML = html;
 }
 
+async function deleteAthletes() {
+	const response = await fetch("api/delete_athletes", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			athlete_ids: getFromSelection("athlete_id")
+		})
+	});
+	location.reload();
+}
+
+async function deleteTypes() {
+	const response = await fetch("api/delete_types", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			activity_type_ids: getFromSelection("type_id")
+		})
+	});
+	location.reload();
+}
+
+async function deleteActivities() {
+	const response = await fetch("api/delete_activities", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			activity_ids: getFromSelection("activity_id")
+		})
+	});
+}
+
+async function renameActivities() {
+	const response = await fetch("/api/rename_activities", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			activity_ids: getFromSelection("activity_id"),
+			new_name: document.getElementById("input_activityname").value
+		})
+	});
+}
+
 async function runMapPlotter() {
 	/*
 	Initiates the RouteGraphPlotter
 	*/
-	var selected_activity_ids = get_from_selection("activity_id");
 
-	const range = document.getElementById("range").value;
 	const response = await fetch("/api/runMapPlotter", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: selected_activity_ids,
+			activity_ids: getFromSelection("activity_id"),
 			lat: latitude,
 			lon: longitude,
 			mapzoom: mapzoom,
@@ -125,16 +173,13 @@ async function runTourPlotter() {
 	/*
 	Initiates the TourGraphPlotter
 	*/
-	var selected_activity_ids = get_from_selection("activity_id");
-	console.log(selected_activity_ids);
-
 	const response = await fetch("/api/runTourAnimation", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: selected_activity_ids,
+			activity_ids: getFromSelection("activity_id"),
 			mapzoom: mapzoom,
 			filename: document.getElementById("input_filename").value
 		})
@@ -146,8 +191,6 @@ async function runDataPlotter() {
 	/*
 	Initiates the RouteProfilePlotter
 	*/
-	var selected_activity_ids = get_from_selection("activity_id");
-	console.log(selected_activity_ids)
 
 	var form_axis_x = document.getElementById("form_select_axis_x");
 	const axis_x = form_axis_x.elements["radio_axis_x"].value;
@@ -160,7 +203,7 @@ async function runDataPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: selected_activity_ids,
+			activity_ids: getFromSelection("activity_id"),
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,

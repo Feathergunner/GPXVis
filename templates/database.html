@@ -2,9 +2,34 @@
 {% from "components/activity_selection_table.html" import activity_selection_table %}
 
 {% block title %}Database{% endblock %}
-
 {% block content %}
 	<h1>Database</h1>
 	{% include "components/query_selection_activity.html" %}
-    {{ activity_selection_table("false", "false", "false") }}
+	<div class="cleanpanel divrow">
+		<div class=" panel floating">
+			<p style="color:#FF0000;">Warning! This will also delete all activities of these athletes permanently from the database!</p>
+			<button onclick="deleteAthletes()">Delete Selected Athletes</button>
+			<p>Note that this does NOT delete the corresponding GPX-files.</p>
+		</div>
+		<div class=" panel floating">
+			<p style="color:#FF0000;">Warning! This will also delete all activities of these activity types permanently from the database!</p>
+			<button onclick="deleteTypes()">Delete Selected Activity Types</button>
+			<p>Note that this does NOT delete the corresponding GPX-files.</p>
+		</div>
+	</div>
+
+    {{ activity_selection_table("false", "true", "false") }}
+   
+   	<div class="cleanpanel divrow">
+   		<div class="panel floating">
+   			<p>Rename the selected activity.<br>If more than one activities are selected, names are enumerated.</p>
+   			<input id="input_activityname" type="text" value="New Name">
+   			<button onclick="renameActivities()">Rename Selected Activities</button>
+   		</div>
+   		<div class="panel floating">
+   			<p style="color:#FF0000;">Warning! This will delete all activities permanently from the database!</p>
+   			<button onclick="deleteActivities()">Delete Selected Activities</button>
+   			<p>Note that this does NOT delete the corresponding GPX-files.</p>
+   		</div>
+   	</div>
 {% endblock %}

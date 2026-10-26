@@ -76,7 +76,6 @@ def add_athlete(name:str):
 		athlete = Athlete(name=name)
 		db.session.add(athlete)
 		db.session.commit()
-		#print("New Athlet",name,"added to DB.")
 	else:
 		print("Error: Athlete with name:",name,"already exists.")
 
@@ -102,7 +101,6 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 		athlete = Athlete(name=athlete_name)
 		db.session.add(athlete)
 		db.session.flush()
-	#print ("Athlete is",athlete.name,"(",athlete.id,")")
 
 	# get metadata from parsed file:
 	with open(filepath, 'r') as activityfile:
@@ -116,7 +114,6 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 		activitytype = ActivityType(name = activity_type_name)
 		db.session.add(activitytype)
 		db.session.flush()
-	#print ("Type is",activitytype.name,"(",activitytype.id,")")
 
 	_datetime = None
 	if not metadata["datetime"] == "unknown":
@@ -183,14 +180,48 @@ def get_activities_by_(
 	activities = db.session.execute(query.order_by(Activity.datetime)).scalars().all()
 	return activities
 
-def update_activity_name(activity_id:int, new_name:str):
-	activity = db.session.execute(db.select(Activity).where(Activity.id == activity_ids)).scalar_one_or_none()
-	if activity is None:
+### DELETE DATABASE ENTRIES:
+def delete_athletes(athlete_ids:list) -> None:
+	athletes_to_delete = db.session.execute(db.select(Athlete).where(Athlete.id.in_(athlete_ids))).scalars().all()
+	for athlete in athletes_to_delete:
+		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.athlete_id == athlete.id)).scalars().all()
+		delete_activities(activity_ids_to_delete)
+		db.session.delete(athlete)
+	db.session.commit()
+
+def delete_types(activitytype_ids:list) -> None:
+	types_to_delete = db.session.execute(db.select(ActivityType).where(ActivityType.id.in_(activitytype_ids))).scalars().all()
+	for type in types_to_delete:
+		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.activitytype_id == type.id)).scalars().all()
+		delete_activities(activity_ids_to_delete)
+		db.session.delete(type)
+	db.session.commit()
+
+def delete_activities(activity_ids:list) -> None:
+	activities_to_delete = get_activities_by_ids(activity_ids)
+	for activity in activities_to_delete:
+		db.session.delete(activity)
+	db.session.commit()
+
+def rename_activities(activity_ids:list, new_name:str) -> None:
+	'''
+	Reset Activity.name
+	'''
+	activities = get_activities_by_ids(activity_ids)
+	print ("activities to rename:",[act.id for act in activities])
+	if activities is None:
 		# todo: raise exception
 		return
-	activity.name = new_name
-	session.commit()
-
+	counter = 0
+	suffix = ""
+	if len(activities) > 1:
+		counter = 1
+		suffix = "_"+str(counter)
+	for activity in activities:
+		activity.name = new_name+suffix
+		counter += 1
+		suffix = "_"+str(counter)
+	db.session.commit()
 
 def test_db():
 	print ("\n #### run test_db ####\n")
