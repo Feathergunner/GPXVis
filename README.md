@@ -2,8 +2,9 @@
 Successor of https://github.com/Feathergunner/Activisualizer
 
 Visualizing data from gpx-files:
-- plotting routes on maps: supports plotting multiple routes on a single map, and different colors for sets of routess
-- freely configurable plots of distance, height, elevation gain, slope, and (if timestamps are contained in gpx-files) time, speed, pace
+- Plotting routes on maps: supports plotting multiple routes on a single map, and different colors for sets of routess.
+- Freely configurable plots of distance, height, elevation gain, slope, and (if timestamps are contained in gpx-files) time, speed, pace.
+- Animations of GPS-tracked activities.
 
 ## Examples
 ### Animation of a Single Activity
@@ -45,10 +46,14 @@ python 3.10-ish with packages:
 - numpy
 - PIL
 - shutil
+- subprocess
+- threading
 
 and ffmpeg (to generate the animations).
 
 ## Future Features
+- Support for more gpx-annotations, like heartrate.
+- Improved plots.
 - More options for creating animations (multiple activities at once, zoomed-in map).
 - More options for managing your database of activities (renaming activities, deleting activities).
 - QOL features: storing default parameters.
