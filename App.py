@@ -24,6 +24,7 @@ db.init_app(app)
 with app.app_context():
 	db.create_all()
 	#DBH.test_db()
+	DBH.get_stats()
 
 aim_rmap = AIM.AppInputManagerRouteMap()
 aim_ta = AIM.AppInputManagerTourAnimation()

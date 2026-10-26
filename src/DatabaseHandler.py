@@ -223,6 +223,16 @@ def rename_activities(activity_ids:list, new_name:str) -> None:
 		suffix = "_"+str(counter)
 	db.session.commit()
 
+def get_stats():
+	all_athletes = get_all_athletes()
+	all_types = get_all_activitytypes()
+	all_activities = db.session.execute(db.select(Activity).order_by(Activity.id)).scalars().all()
+
+	print ("Database contains:")
+	print ("\tnumber of athletes:",len(all_athletes))
+	print ("\tnumber of types:",len(all_types))
+	print ("\tnumber of activities:",len(all_activities))
+
 def test_db():
 	print ("\n #### run test_db ####\n")
 	#add_activitytype("Biking")
