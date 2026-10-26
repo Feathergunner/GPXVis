@@ -55,6 +55,6 @@ and ffmpeg (to generate the animations).
 - Support for more gpx-annotations, like heartrate.
 - Improved plots.
 - More options for creating animations (multiple activities at once, zoomed-in map).
-- More options for managing your database of activities (renaming activities, deleting activities).
 - QOL features: storing default parameters.
 - Improved progress bar.
+- Progress bar for uploading activities.
