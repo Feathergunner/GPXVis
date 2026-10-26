@@ -13,9 +13,9 @@ Visualizing data from gpx-files:
 ![example_profile_elevation](examples_and_screenshots/example_plot_time_elevationgain.png "Plot elevation")
 ![example_profile_pace](examples_and_screenshots/example_plot_distance_pace.png "Plot pace")
 
-![screenshot_upload](examples_and_screenshots/screen_upload.png "Upload")
-![screenshot_database](examples_and_screenshots/screen_database.png "Database")
-![screenshot_map](examples_and_screenshots/screen_maps.png "Map")
+![screenshot_upload](examples_and_screenshots/screenshot_upload.png "Upload")
+![screenshot_database](examples_and_screenshots/screenshot_database.png "Database")
+![screenshot_map](examples_and_screenshots/screenshot_maps.png "Map")
 
 ## How To Start
 1) Run `python App.py` to start a local flask server.

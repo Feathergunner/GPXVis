@@ -6,4 +6,6 @@ instance
 *.png
 *.mp4
 *.gif
-!example_*.png
+!examples_and_screenshots/example_*.png
+!examples_and_screenshots/example_*.mp4
+!examples_and_screenshots/screenshot_*.png
