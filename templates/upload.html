@@ -3,15 +3,18 @@
 {% block title %}Upload GPX File{% endblock %}
 
 {% block content %}
-	<h1>Upload GPX File</h1>
+<h1>Upload GPX File</h1>
+<div class="cleanpanel">
 	{% include "components/select_athlete.html" %}
-	<div class="cleanpanel">
+</div>
+
+<div class="cleanpanel">
 	Add new athlete:
 	<input id="input_athletename" type="text" value="">
 	<button onclick="addAthlete()">Add athlete</button>
-	</div>
+</div>
 
-	<div class="cleanpanel">
+<div class="cleanpanel">
 	<input type="file" id="fileInput" multiple>
 	<button onclick="uploadFiles()">Upload GPX-files</button>
 </div>
