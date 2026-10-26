@@ -1,9 +1,33 @@
 :root {
---bg: #1e1e1e;
---panel: #252526;
---border: #3c3c3c;
---text: #d4d4d4;
+--bg: #202020;
+--panel: #303030;
+--border: #404040;
+--text: #e0e0e0;
 --accent: #4fc3f7;
+}
+
+/* Navigation */
+.navbar {
+    display: flex;
+    gap: 20px;
+    padding: 15px 25px;
+    background-color: #333;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+/* Main content */
+.container {
+    /*max-width: 1200px;*/
+    margin: 30px auto;
+    padding: 0 20px;
 }
 
 body {
@@ -18,7 +42,7 @@ background: var(--panel);
 border: 1px solid var(--border);
 border-radius: 10px;
 padding: 15px;
-margin-bottom: 15px;
+margin: 15px;
 }
 
 .cleanpanel {
@@ -27,6 +51,14 @@ border: none;
 border-radius: 10px;
 padding: 15px;
 margin-bottom: 15px;
+}
+
+.divrow {
+display:flex;
+}
+
+.floating {
+flex: 1;
 }
 
 button {
@@ -55,67 +87,35 @@ h2 {
 	margin-left: 20px;
 }
 
-.container {
-	display: flex;
-	gap: 20px;
-}
-
-.left-panel {
-	flex: 2;
-}
-
-.right-panel {
-	flex: 3;
-}
-
-button.tablinks{
-	background-color: darkgreen;
-	border-width:1px;
-	color: white;
-	padding: 15px 32px;
-	text-align: center;
-	text-decoration: none;
-	display: inline-block;
-	font-size: 16px;
-	cursor: pointer;
-}
-
-button.tablinks.active{
-	background-color: green;
-	border-width:1px;
-	color: white;
-	padding: 15px 32px;
-	text-align: center;
-	text-decoration: none;
-	font-weight:bold;
-	display: inline-block;
-	font-size: 16px;
-	cursor: pointer;
-}
 
 #map {
 	height: 500px;
 	width: 500px;
 }
 
-.file-table {
-	width: 100%;
-	border-collapse: collapse;
+#table-container {
+    margin-top: 20px;
+    overflow-x: auto;
 }
 
-.file-table th,
-.file-table td {
-	border: 1px solid #ccc;
-	padding: 6px 6px;
-	text-align: left;
+table {
+    background-color: #222222;
+    border-collapse: collapse;
+    width: 100%;
 }
 
-.file-table th {
-	background: #111;
+th, td {
+    border: 1px solid #c0c0c0;
+    padding: 8px 12px;
+    text-align: right;
+}
+
+thead {
+    background-color: #111111;
 }
 
 .checkbox-column {
-    width: 32px;
+	width: 32px;
     text-align: center;
     padding: 2px;
     white-space: nowrap;

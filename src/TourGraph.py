@@ -4,18 +4,13 @@
 import os
 import math
 import numpy as np
-#import networkx as nx
+import datetime
 
 from src import OSMMapDownloader as osmmd
-from src import GPXDataManager as GPXDM
 from src.SubTask import SubTask
-
 from src.RouteGraph import RouteGraphNode, BaseGraphEdge
-
-#from src.misc_geometry import get_vector_as_mxb, project_point_on_vector, get_latlon_vector_length
 from src.misc_geometry import get_latlon_vector_length, round_gps
 from src.misc import ensure_dir_exists, load_gpx_file, parse_gps_from_gpx
-#from org import METER_PER_DEG_LAT, METER_PER_DEG_LON, NODE_MERGE_PRECISION, STRAIGHT_PATH_MAX_DEGREE
 
 class TourGraphEdge(BaseGraphEdge):
 	# class to hold tour segment data (like average speed) to be used for plotting
@@ -51,7 +46,7 @@ class TourGraphEdge(BaseGraphEdge):
 			# assume node_a is first
 			self.id_begin = node_a.id
 			self.id_end = node_b.id
-			self.duration = 0
+			self.duration = datetime.timedelta(0)
 			self.elevation_change = elevation_b-elevation_a
 		self.elevation_avg = (elevation_a + elevation_b)/2
 
@@ -61,15 +56,15 @@ class TourGraph():
 	# to plot tour with color-coded graph segments
 	# or to create tour animation 
 
-	def __init__(self):
-		self.nodes = []
+	def __init__(self, name:str=""):
+		self.nodes = {}
 		self.edges = []
 		self.start_node_id = -1
 
-		self.basename = ""
+		self.basename = name
 
 	def number_of_nodes(self) -> int:
-		return len(self.nodes)
+		return len(self.nodes.keys())
 
 	def number_of_edges(self) -> int:
 		return len(self.edges)
@@ -78,7 +73,10 @@ class TourGraph():
 		return self.number_of_nodes() == 0
 
 	def add_node(self, node:RouteGraphNode):
-		self.nodes.append(node)
+		self.nodes[node.id]=node
+
+	def get_node(self, node_id:int):
+		return self.nodes[node_id]
 
 	def add_egde(self, node_a:TourGraphEdge, node_b:TourGraphEdge):
 		new_edge = TourGraphEdge(node_a, node_b)
@@ -91,8 +89,7 @@ class TourGraph():
 		datapoint_dists = []
 
 		for datapoint in gpsdata:
-			#print (datapoint)
-			# construct node:
+			# check lat/lon
 			lat = datapoint["latitude"]
 			lon = datapoint["longitude"]
 			if lat is None or lon is None:
@@ -109,29 +106,45 @@ class TourGraph():
 				self.add_egde(previous_node, new_node)
 			previous_node = new_node
 
+	def get_split_segments(self, splitdistance:int=None, splittime:int=None, offset:int=0):
+		'''
+		Returns a list of lists of edge-ids, where each list of edge-ids covers a split.
+		
+		If splitdistance is not None, this defines the length of a split in meters.
+		Else if splittime is not None, this defines the length of a split in seconds.
+			If both are None, splitdistance is set to 100 meters.
 
-	def get_split_segments(self, splitdistance:int=None, splittime:int=None):
-		# returns a list of lists of edge-ids, where each list of edge-ids covers a split
-		# if splitdistance is not None, this defines the length of a split in meters
-		# else if splittime is not None, this defines the length of a split in seconds
-		# if both are None, splitdistance is set to 100 meters.
+		offset: specifies how many datapoints in the beginning of the tour are skipped
+		before the first segment starts (used to synchronize the segments multiple tours).
+		'''
 
+		print ("get split segments for tour",self.basename)
 		if splitdistance is None and splittime is None:
 			splitdistance = 100
+
+		current_total_covered = 0
+		if splitdistance is not None:
+			next_split_end = splitdistance
+			print ("  by distance:",splitdistance)
+		else:
+			next_split_end = splittime
+			print ("  by time:",splittime)
+
+		start_edge = offset
 
 		# init list of splits:
 		splits = []
 		splits.append({
-			"edge_ids" : [0],
-			"distance" : self.edges[0].length,
-			"time" : self.edges[0].duration.total_seconds(),
-			"speed" : self.edges[0].length/self.edges[0].duration.total_seconds(),
-			"elevation_change" : self.edges[0].elevation_change,
-			"elevation_avg" : self.edges[0].elevation_avg,
+			"edge_ids" : [start_edge],
+			"distance" : self.edges[start_edge].length,
+			"time" : self.edges[start_edge].duration.total_seconds(),
+			"speed" : self.edges[start_edge].length/self.edges[start_edge].duration.total_seconds(),
+			"elevation_change" : self.edges[start_edge].elevation_change,
+			"elevation_avg" : self.edges[start_edge].elevation_avg,
 			"dist_total" : 0,
 			"time_total" : 0
 			})
-		current_edge_id = 1
+		current_edge_id = start_edge+1
 		while current_edge_id < self.number_of_edges():
 			new_split_edges = []
 			split_dist = 0
@@ -149,10 +162,14 @@ class TourGraph():
 
 				current_edge_id += 1
 				if splitdistance is not None:
-					if split_dist > splitdistance:
+					if current_total_covered + split_dist > next_split_end:
 						add_next_edge = False
-				elif split_time > splittime:
+						current_total_covered += split_dist
+						next_split_end += splitdistance
+				elif current_total_covered + split_time > next_split_end:
 					add_next_edge = False
+					current_total_covered += split_time
+					next_split_end += splittime
 					
 			new_split = {
 				"edge_ids" : new_split_edges,
@@ -166,6 +183,6 @@ class TourGraph():
 				}
 			splits.append(new_split)
 
-		print ("Number of splits:",len(splits))
+		#print ("Constructed splits for tour",self.basename,":",len(splits))
 		#print ("split sizes (edges):", [len(s[edge_ids]) for s in splits])
 		return splits

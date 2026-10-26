@@ -1,0 +1,8 @@
+{% macro activity_selection_table(considergps, addselectioncheckbox, defaultchecked) %}
+<div class="cleanpanel" id="activity_selection_table">
+	<button onclick="get_activities({{ considergps }}, {{ addselectioncheckbox }}, {{ defaultchecked }})">Show relevant activities</button>
+
+	<h3>Select Activities:</h3>
+	{% include "components/activity_table.html" %}
+</div>
+{% endmacro %}

@@ -1,0 +1,56 @@
+<div id="activity_table">
+	<form id="form_select_activity">
+	<table>
+		<thead>
+			<tr>
+				{% if addselectioncheckbox %}<td class="checkbox-column"></td>{% endif %}
+				<td>Athlete</td>
+				<td>Type</td>
+				<td>Name</td>
+				<td>Date</td>
+				<td>Time of Day</td>
+				<td>Location GPS</td>
+				<td>Distance</td>
+				<td>Elevation Gain</td>
+				<td>Duration</td>
+				<td>Avg. Pace</td>
+			</tr>
+			<tr>
+				{% if addselectioncheckbox %}<td class="checkbox-column"></td>{% endif %}
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>(hh:mm)</td>
+				<td>(lat,lon)</td>
+				<td>(km)</td>
+				<td>(m)</td>
+				<td>(h:mn:ss)</td>
+				<td>(min/km)</td>
+			</tr>
+		</thead>
+		<tbody>
+			{% for activity in activities %}
+			</tr>
+				{% if addselectioncheckbox %}
+				<td class="checkbox-column">
+					<input type="checkbox" id="radiobox_activity" name="activity_id" value="{{ activity.id }}" {% if defaultchecked %}checked{% endif %}>
+				</td>
+				{% endif %}
+				<td> {{ activity.athlete_name }} </td>
+				<td> {{ activity.type_name }} </td>
+				<td> {{ activity.name }} </td>
+				<td> {{ activity.date }} </td>
+				<td> {{ activity.time }} </td>
+				<td> {{ activity.startpos_str }} </td>
+				<td> {{ activity.distance_km }} </td>
+				<td> {{ activity.elevation }} </td>
+				<td> {{ activity.duration_hms }} </td>
+				<td> {{ activity.pace }} </td>
+				
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	</form>
+</div>

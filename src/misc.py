@@ -8,7 +8,6 @@ import math
 import re
 import gpxpy
 
-from src import GPXDataManager as GPXDM
 from src.misc_geometry import get_latlon_vector_length
 
 MAP_DIM_TILE = 256
@@ -53,12 +52,28 @@ def pace_to_float(pace_str:str) -> float:
         print(f"Fehler beim Parsen von Pace '{pace_str}': {e}")
         return None
 
+# Helper function to compute average pace in min/km
+# from total duration in seconds and total distance in m
+# returns a formatted string
+def construct_pace_string(time:int, distance:int) -> str:
+	# pace in minutes per km:
+	pace = (time/60) / (distance/1000)
+	return float_to_pace_str(pace)
+
 # Helper function to transform time in minutes from float to "m:ss"-String
+# returns a formatted string
 def float_to_pace_str(pace_float:float) -> str:
     total_seconds = int(round(pace_float * 60))
     minutes = total_seconds // 60
     seconds = total_seconds % 60
     return f"{minutes}:{seconds:02d}"
+
+# Helper function to compute average speed in km/h
+# returns a formatted string with one decimal point
+def construct_speed_string(time:int, distance:int) -> str:
+	# speed in km/h:
+	speed = (distance/1000) / (time/3600)
+	return f"{speed:.1f}"
 	
 def format_time(seconds:int) -> str:
 	'''
@@ -188,40 +203,3 @@ def load_gpx_file(filepath) -> tuple:
 	metadata["start_latitude"] = gpxdata.tracks[0].segments[0].points[i].latitude
 	metadata["start_longitude"] = gpxdata.tracks[0].segments[0].points[i].longitude
 	return (gpxdata, metadata)
-
-def get_gpx(
-		directory:str,
-		activity_type:str,
-		use_unknown_type:bool=False,
-		lat_ref:float=None,
-		lon_ref:float=None,
-		delta_km:float=2,
-		dist_cutoff_km=None,
-		date_min:str=None,
-		date_max:str=None,
-		use_unknown_date:bool=False,
-		verbose:bool=False) -> tuple:
-	# check if dates are correct:
-	if not check_datestr_format(date_min):
-		raise ValueError("min_date has to be in isoformat YYYY-MM-DD")
-	if not check_datestr_format(date_max):
-		raise ValueError("max_date has to be in isoformat YYYY-MM-DD")
-
-	activity_gpxs = []
-	activity_metadata = []
-	gpxs_filenames = []
-	found_activity_types = []
-
-	if verbose:
-		print ("load gpx data from directory", os.path.join(directory, activity_type), "...")
-
-	gpxdm = GPXDM.GPXDataManager(data_dir=directory)
-	relevant_filepaths = gpxdm.get_list_of_gpx_files(lat_ref, lon_ref, delta_km, activity_type, use_unknown_type, date_min, date_max, use_unknown_date)
-	for filepath in relevant_filepaths:
-		(gpxdata, metadata) = load_gpx_file(filepath)
-		activity_gpxs.append(gpxdata)
-		activity_metadata.append(metadata)
-		gpxs_filenames.append(filepath)
-	activity_statistics = gpxdm.get_statistics_from_db(lat_ref, lon_ref, delta_km, activity_type, use_unknown_type, date_min, date_max, use_unknown_date)
-
-	return (activity_gpxs, activity_metadata, gpxs_filenames, activity_statistics)

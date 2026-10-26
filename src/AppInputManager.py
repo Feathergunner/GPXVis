@@ -4,19 +4,16 @@
 import os
 
 from src import RouteGraph as RG
+from src import TourGraph as TG
 from src import RouteGraphPlotter as RGP
 from src import RouteProfilePlotter as RPP
+from src import TourGraphPlotter as TGP
 from src.SubTask import SubTask
 from org import GPX_DIR
 
 class AppInputManager(SubTask):
 	def __init__(self, taskname:str, taskweight:int):
-		self.date_min = None
-		self.date_max = None
-		self.use_unknown_date = None
-		self.gpx_dirs = None
-		self.activity_type = None
-		self.use_unknown_type = None
+		self.map_zoom_lvl = None
 		self.line_color = None
 		self.filename_prefix = None
 		self.outputfilepath = None
@@ -25,29 +22,17 @@ class AppInputManager(SubTask):
 	def __str__(self):
 		retstr = super().__str__()+"\n"
 		retstr += "Target Filename: "+str(self.filename_prefix)+"\n"
-		retstr += "Date range: ("+str(self.date_min)+" - "+str(self.date_max)+")"
-		if self.use_unknown_date:
-			retstr += " (also use activities with unknown date)"
-		retstr += "\n"
-		retstr += "Directories: "+str(self.gpx_dirs)+"\n"
-		retstr += "Activity type: "+str(self.activity_type)+"\n"
 		retstr += "line_color: "+str(self.line_color)+"\n"
 		return retstr
 
-	def set_daterange(self, date_min:str, date_max:str, use_unknown_date:bool):
-		self.date_min = date_min
-		self.date_max = date_max
-		self.use_unknown_date = use_unknown_date
+	def set_zoom(self, map_zoom_lvl:int):
+		self.map_zoom_lvl = map_zoom_lvl
 
-	def set_gpx_dir(self, gpx_dir:str):
-		self.gpx_dirs = [gpx_dir]
-
-	def set_gpx_dirs(self, gpx_dirs:list):
-		self.gpx_dirs = gpx_dirs
-
-	def set_activity_type(self, activity_type:str, use_unknown_type:bool):
-		self.activity_type = activity_type
-		self.use_unknown_type = use_unknown_type
+	def set_activities(self, activities:list):
+		'''
+		activities: list of DBH.Activity
+		'''
+		self.activities = [activity.to_dict for activity in activities]
 
 	def set_filename_prefix(self, filename:str):
 		self.filename_prefix = filename
@@ -57,37 +42,33 @@ class AppInputManagerRouteMap(AppInputManager):
 		super().__init__("AppInputManagerRouteMap",3)
 		self.ref_lat = None
 		self.ref_lon = None
-		self.range_start = None
-		self.map_zoom_lvl = None
 
 	def __str__(self):
 		retstr = super().__str__()
-		retstr += "Reference Point: ("+str(self.ref_lat)+","+str(self.ref_lon)+")\n"
-		retstr += "Maximum distance from reference point: "+str(self.range_start)+"km\n"
 		retstr += "Map zoom level: "+str(self.map_zoom_lvl)+"\n"
 		return retstr
 
-	def set_reference_area(self, ref_lat:float, ref_lon:float, range_start:float):
+	def set_reference_area(self, ref_lat:float, ref_lon:float):
 		self.ref_lat = ref_lat
 		self.ref_lon = ref_lon
-		self.range_start = range_start
-
-	def set_zoom(self, map_zoom_lvl:int):
-		self.map_zoom_lvl = map_zoom_lvl
 
 	def run_plotter(self):
+		# sort activities by athlete:
+		activities_by_athlete = {}
+		for activity in self.activities:
+			athlete_id = activity["athlete_id"]
+			if athlete_id not in activities_by_athlete:
+				activities_by_athlete[athlete_id] = []
+			activities_by_athlete[athlete_id].append(activity)
+
+		# construct a seperate routegraph for each athlete:
 		routegraphconstructors = []
-		for gpx_dir in self.gpx_dirs:
-			#full_gpx_path = os.path.join(GPX_DIR, gpx_dir)
+		for athlete_id in activities_by_athlete:
 			rgc = RG.RouteGraphConstructor(
-				gpx_dir = gpx_dir,
-				activity_type = self.activity_type,
+				activities = activities_by_athlete[athlete_id],
 				lat_ref = self.ref_lat,
 				lon_ref = self.ref_lon,
-				delta_km = self.range_start,
-				date_min = self.date_min,
-				date_max = self.date_max,
-				use_unknown_date = self.use_unknown_date
+				name = activities_by_athlete[athlete_id][0]["type_name"]+"_by_"+activities_by_athlete[athlete_id][0]["athlete_name"]
 				)
 			self.add_task_child(rgc)
 			routegraphconstructors.append(rgc)
@@ -96,21 +77,47 @@ class AppInputManagerRouteMap(AppInputManager):
 			rg = rgc.get_routegraph()
 			if not rg.is_empty():
 				routegraphs.append(rg)
-		#print (routegraphs)
 		if len(routegraphs) == 0:
+			## todo: raise exception
 			self.outputfilepath = None
-			print ("No routes found!")
+			print ("Error! No routes found!")
 			self.finish_progress()
 			return self.outputfilepath
+		# plot the routegraphs:
 		rgp = RGP.RouteGraphPlotter(routegraphs, self.map_zoom_lvl)
 		self.add_task_child(rgp)
-		filename = rgp.construct_filename(routegraphs[0].basename)
+		filename = rgp.construct_filename("")
 		if self.filename_prefix is not None and len(self.filename_prefix) > 0:
 			filename = self.filename_prefix+"_"+filename
 		self.outputfilepath = rgp.plot(filename)
-		print ("outputfilepath: ",self.outputfilepath)
 		self.finish_progress()
 		return self.outputfilepath
+
+class AppInputManagerTourAnimation(AppInputManager):
+	def __init__(self):
+		super().__init__("AppInputManagerTourAnimation",2)
+		self.filepath = None
+
+	def __str__(self):
+		retstr = super().__str__()
+		retstr += "filepath: "+str(self.filepath)
+		return retstr
+
+	def set_filepath(self, filepath:str):
+		self.filepath = os.path.join("gpxdata",filepath)
+
+	def set_full_filepath(self, _filepath:str):
+		self.filepath = _filepath
+
+	def run_animation_builder(self):
+		# construct tourgraph from gpx file:
+		tg = TG.TourGraph()
+		tg.construct_from_gpx(self.filepath)
+		# plot animation:
+		tgp = TGP.TourGraphPlotter([tg], self.map_zoom_lvl)
+		self.add_task_child(tgp)
+		tgp.create_tour_animation(split_type="time", split_size=15, fps=4, synchronize_start="no", result_filename=self.filename_prefix, add_legend=False)
+		self.finish_progress()
 
 class AppInputManagerActivityData(AppInputManager):
 	def __init__(self):
@@ -134,11 +141,9 @@ class AppInputManagerActivityData(AppInputManager):
 		self.axis_color_key = key
 
 	def run_plotter(self):
-		print ("aim_ad.run_plotter()")
-		#full_gpx_path = os.path.join(GPX_DIR, self.gpx_dirs[0])
-		rpp = RPP.RouteProfilePlotter(self.gpx_dirs[0], self.activity_type, date_min=self.date_min, date_max=self.date_max, use_unknown_date=self.use_unknown_date, verbose=True)
+		# plot daragraph of activities:
+		rpp = RPP.RouteProfilePlotter(self.activities)
 		self.add_task_child(rpp)
-		#rpp.load_data()
 		rpp.parse_data()
 		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, basename=self.filename_prefix)
 		self.finish_progress()

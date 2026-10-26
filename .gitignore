@@ -2,5 +2,8 @@ __pycache__
 maps
 output
 gpxdata
+instance
 *.png
+*.mp4
+*.gif
 !example_*.png

@@ -1,0 +1,14 @@
+<div class="panel floating">
+    <h3>Select athlete:</h3>
+	{% for athlete in athletes %}
+	
+	<form id="form_select_athlete">
+		<input type="checkbox" id="checkbox_athlete_id" name="athlete_id" value="{{ athlete.id }}" required>
+		{{ athlete.name }}
+	</form>
+	<br>
+	{% else %}
+	<p>No athletes found.</p>
+	{% endfor %}
+</div>
+

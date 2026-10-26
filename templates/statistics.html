@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "components/filename_and_startbutton.html" import filename_and_startbutton %}
+{% from "components/activity_selection_table.html" import activity_selection_table %}
+
+{% block title %}Statistics{% endblock %}
+
+{% block content %}
+    <h1>Statistics and plots</h1>
+    {% include "components/query_selection_activity.html" %}
+    {{ activity_selection_table("false", "true", "true") }}
+    {% include "components/select_plotparams.html" %}
+    {{ filename_and_startbutton("Create statistics plot", "runDataPlotter()") }}
+    {% include "components/progressbar.html" %}
+
+{% endblock %}

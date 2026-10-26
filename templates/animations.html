@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "components/filename_and_startbutton.html" import filename_and_startbutton %}
+{% from "components/activity_selection_table.html" import activity_selection_table %}
+
+{% block title %}Animations{% endblock %}
+
+{% block content %}
+    <h1>Animations</h1>
+    {% include "components/query_selection_activity.html" %}
+    {% include "components/select_mapsettings.html" %}
+    {{ activity_selection_table("true", "true", "false") }}
+    {{ filename_and_startbutton("Create animated tour visualization", "runTourPlotter()") }}
+    {% include "components/progressbar.html" %}
+    
+{% endblock %}

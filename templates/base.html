@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}My Project{% endblock %}</title>
+
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet/dist/leaflet.css">
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"
+            defer></script>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('upload') }}">Upload</a>
+        <a href="{{ url_for('database') }}">Database</a>
+        <a href="{{ url_for('statistics') }}">Statistics</a>
+        <a href="{{ url_for('maps') }}">Maps</a>
+        <a href="{{ url_for('animations') }}">Animations</a>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+
+</html>

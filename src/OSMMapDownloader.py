@@ -114,7 +114,14 @@ class MapTile:
 
 
 class OSMMapDownloader(SubTask):
-	def __init__(self, lat_min:int, lat_max:int, lon_min:int, lon_max:int, zoom:int=MAP_DEFAULT_ZOOM, add_border:bool=False, route:list=None):
+	def __init__(self,
+			lat_min:int,
+			lat_max:int,
+			lon_min:int,
+			lon_max:int,
+			zoom:int=MAP_DEFAULT_ZOOM,
+			add_border:bool=False,
+			route:list=None):
 		'''
 		lat_min, lat_max, lon_min, lon_max: range of latitude and longitude to be covered
 		zoom: detail level of map. zoom = 0 covers the whole world, maximum is zoom = 19.

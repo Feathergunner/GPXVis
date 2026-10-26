@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "components/activity_selection_table.html" import activity_selection_table %}
+
+{% block title %}Database{% endblock %}
+
+{% block content %}
+	<h1>Database</h1>
+	{% include "components/query_selection_activity.html" %}
+    {{ activity_selection_table("false", "false", "false") }}
+{% endblock %}

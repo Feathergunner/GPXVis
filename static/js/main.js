@@ -1,91 +1,55 @@
 
 let latitude;
 let longitude;
-let mapzoom = 8
+let mapzoom = 8;
 let map;
+let range = 5;
 
-function openTab(evt, tabName) {
-	// Declare all variables
-	var i, tabcontent, tablinks;
-
-	// Get all elements with class="tabcontent" and hide them
-	tabcontent = document.getElementsByClassName("tabcontent");
-	//console.log(tabcontent)
-	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
-	}
-
-	// Get all elements with class="tablinks" and remove the class "active"
-	tablinks = document.getElementsByClassName("tablinks");
-	for (i = 0; i < tablinks.length; i++) {
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
-	}
-
-	// Show the current tab, and add an "active" class to the button that opened the tab
-	//console.log(tabName)
-	elements_to_show = document.getElementsByClassName(tabName)
-	//console.log(elements_to_show)
-	for (i = 0; i < elements_to_show.length; i++) {
-		elements_to_show[i].style.display = "block";
-	}
-	
-	evt.currentTarget.className += " active";
-} 
-
-async function loadFolders() {
-	// API aufrufen
-	const response = await fetch("/api/list-dir");
-	// JSON lesen
-	const data = await response.json();
-	// Container holen
-	const container = document.getElementById("folderlist");
-	//console.log(container)
-
-	// Add content:
-	container.innerHTML = "";
-	data.folders.forEach(folder => {
-		const label = document.createElement("label");
-		// radio button:
-		const checkb = document.createElement("input");
-		checkb.type = "checkbox";
-		checkb.name = "selectedFolder";
-		checkb.id = "checkbox_dir";
-		checkb.value = folder;
-		label.appendChild(checkb);
-		label.appendChild( document.createTextNode(folder));
-		label.appendChild(document.createElement("br"));
-		container.appendChild(label);
+function get_from_selection(selectionFieldName){
+	/*
+	get list of values from a set of checkboxes
+	*/
+	const selection = [];
+	const checkboxes = document.querySelectorAll('input[name='+selectionFieldName+']:checked');
+	checkboxes.forEach(cb => {
+		selection.push(cb.value);
 	});
+	return selection
 }
 
-async function newDataDir(){
-	const dirNameInput = document.getElementById("input_dirname")
-	const response = await fetch("/api/newDir", {
+async function addAthlete(){
+	/*
+	Add an athlete to the database
+	*/
+	const response = await fetch("/api/add_athlete", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			dirName: dirNameInput.value
+			name: document.getElementById("input_athletename").value
 		})
 	});
-	loadFolders();
-}
 
-function getSelectedFolders(){
-	var dirform = document.getElementById("form_select_dir");
-	const dir = dirform.elements["checkbox_dir"].value;
-	const selected_dirs = [];
-	const checkboxes = document.querySelectorAll('input[name="selectedFolder"]:checked');
-	checkboxes.forEach(cb => {
-		selected_dirs.push(cb.value);
-	});
-	return selected_dirs
+	location.reload();
 }
 
 async function uploadFiles(){
+	/*
+	Add activities to the database.
+
+	User 'uploads' a set of gpx-files.
+	These files are parsed into activities which are in turn added to the database.
+	The files are also copied to a local folder for future reference.
+	*/
+
 	const formData = new FormData();
-	// uploaded files:
+	// add selected athlete:
+	formData.append(
+		"athlete_id",
+		get_from_selection("athlete_id")[0]
+	);
+	// add uploaded files:
 	const input = document.getElementById("fileInput");
 	for (const file of input.files) {
 		formData.append(
@@ -93,14 +57,6 @@ async function uploadFiles(){
 			file
 		);
 	}
-	// target directory:
-	const selected_dirs = getSelectedFolders()
-	const targetFolder = selected_dirs[0]
-	formData.append(
-		"target_folder",
-		targetFolder
-	);
-
 	const response = await fetch(
 		"/api/uploadGPX",{
 			method: "POST",
@@ -109,133 +65,44 @@ async function uploadFiles(){
 	);
 }
 
-async function loadDatabase(){
-	const response = await fetch("/api/list_files");
-	const data = await response.json();
-	//console.log(data);
-	createFileTable(data);
-}
+async function get_activities(considergps=false, addcheckbox=false, defaultchecked=false) {
+	/*
+	Get a set of activities from the database.
 
-async function rebuildDatabase(){
-	const response = await fetch("/api/rebuild_database");
-	loadDatabase()
-}
-
-function createFileTable(data) {
-	const container =
-		document.getElementById(
-			"div_database"
-		);
-	container.innerHTML = "";
-	const table = document.createElement("table");
-	table.classList.add("file-table");
-
-	//--------------------------------------------------
-	// Header
-	//--------------------------------------------------
-	const header = document.createElement("tr");
-	const th_cb_folder = document.createElement("th");
-	th_cb_folder.className = "checkbox-column";
-	header.appendChild(th_cb_folder);
-	const th_folder = document.createElement("th");
-	th_folder.textContent = "Directory"
-	header.appendChild(th_folder);
-	const th_cb_file = document.createElement("th");
-	th_cb_file.className = "checkbox-column";
-	header.appendChild(th_cb_file);
-	[
-		"File",
-		"Date",
-		"Total Distance",
-		"Total Time",
-		"Total Elevation"
-	].forEach(text => {
-		const th = document.createElement("th");
-		th.textContent = text;
-		header.appendChild(th);
-	});
-
-	table.appendChild(header);
-
-	//--------------------------------------------------
-	// Zeilen
-	//--------------------------------------------------
-	data.all_folders.forEach(folder => {
-
-		const files = data.all_files[folder] || [];
-		files.forEach((file, index) => {
-			const row = document.createElement("tr");
-
-			//------------------------------------------
-			// Ordner-Checkbox
-			//------------------------------------------
-
-			const folderCheckboxCell = document.createElement("td");
-			if (index === 0) {
-				const cb = document.createElement("input");
-				cb.type = "checkbox";
-				cb.className = "folder-checkbox checkbox-column";
-				cb.dataset.folder = folder;
-				folderCheckboxCell.appendChild(cb);
-			}
-			row.appendChild(folderCheckboxCell);
-
-			//------------------------------------------
-			// Ordnername
-			//------------------------------------------
-
-			const folderCell = document.createElement("td");
-			if (index === 0) {
-				folderCell.textContent = folder;
-			}
-			row.appendChild(folderCell);
-
-			//------------------------------------------
-			// Datei-Checkbox
-			//------------------------------------------
-			const fileCheckboxCell = document.createElement("td");
-			const fileCb = document.createElement("input");
-			fileCb.type = "checkbox";
-			fileCb.className = "file-checkbox checkbox-column";
-			fileCb.dataset.folder = folder;
-			fileCb.dataset.file = file;
-			fileCheckboxCell.appendChild(fileCb);
-			row.appendChild(fileCheckboxCell);
-
-			//------------------------------------------
-			// Dateiname
-			//------------------------------------------
-			const fileCell = document.createElement("td");
-			fileCell.textContent = file;
-			row.appendChild(fileCell);
-
-			//------------------------------------------
-			// Dummy-Metadaten
-			//------------------------------------------
-			const cell_date = document.createElement("td");
-			cell_date.textContent = "Date";
-			row.appendChild(cell_date);
-			const cell_dist = document.createElement("td");
-			cell_dist.textContent = "Meta A";
-			row.appendChild(cell_dist);
-			const cell_time = document.createElement("td");
-			cell_time.textContent = "Meta B";
-			row.appendChild(cell_time);
-			const cell_ele = document.createElement("td");
-			cell_ele.textContent = "Meta C";
-			row.appendChild(cell_ele);
-			table.appendChild(row);
-		});
-	});
-	container.appendChild(table);
+	Gets a rendered html-table containing the activity-metadata from the server.
+	*/
+	const response = await fetch("/api/get_activities_table", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			athlete_ids: get_from_selection("athlete_id"),
+			type_ids: get_from_selection("type_id"),
+			date_min: document.getElementById("inputDateMin").value,
+			date_max: document.getElementById("inputDateMax").value,
+			use_unkown_date: document.getElementById("checkUnknownDate").checked,
+			lat: latitude,
+			lon: longitude,
+			range: range,
+			consider_gps: considergps,
+			add_checkbox: addcheckbox,
+			default_checked: defaultchecked
+		})
+	})
+    if (!response.ok) {
+        console.error("Failed to update label");
+        return;
+    }
+    const html = await response.text();
+    document.getElementById("activity_table").outerHTML = html;
 }
 
 async function runMapPlotter() {
-	var typeform = document.getElementById("form_select_type");
-	const type = typeform.elements["radio_type"].value;
-
-	const selected_dirs = getSelectedFolders()
-	console.log(selected_dirs)
+	/*
+	Initiates the RouteGraphPlotter
+	*/
+	var selected_activity_ids = get_from_selection("activity_id");
 
 	const range = document.getElementById("range").value;
 	const response = await fetch("/api/runMapPlotter", {
@@ -244,29 +111,43 @@ async function runMapPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
+			activity_ids: selected_activity_ids,
 			lat: latitude,
 			lon: longitude,
 			mapzoom: mapzoom,
-			range: range,
-			type: type,
-			use_unkown_type: document.getElementById("checkUnknownType").checked,
-			dir: selected_dirs,
-			date_min: document.getElementById("inputDateMin").value,
-			date_max: document.getElementById("inputDateMax").value,
-			use_unkown_date: document.getElementById("checkUnknownDate").checked,
-			filename: document.getElementById("input_filename_map").value
+			filename: document.getElementById("input_filename").value
 		})
 	});
-	//console.log("started computation...")
+	monitorProgress();
+}
+
+async function runTourPlotter() {
+	/*
+	Initiates the TourGraphPlotter
+	*/
+	var selected_activity_ids = get_from_selection("activity_id");
+	console.log(selected_activity_ids);
+
+	const response = await fetch("/api/runTourAnimation", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			activity_ids: selected_activity_ids,
+			mapzoom: mapzoom,
+			filename: document.getElementById("input_filename").value
+		})
+	});
 	monitorProgress();
 }
 
 async function runDataPlotter() {
-	var typeform = document.getElementById("form_select_type");
-	const type = typeform.elements["radio_type"].value;
-
-	const selected_dirs = getSelectedFolders()
-	//console.log(selected_dirs)
+	/*
+	Initiates the RouteProfilePlotter
+	*/
+	var selected_activity_ids = get_from_selection("activity_id");
+	console.log(selected_activity_ids)
 
 	var form_axis_x = document.getElementById("form_select_axis_x");
 	const axis_x = form_axis_x.elements["radio_axis_x"].value;
@@ -279,23 +160,22 @@ async function runDataPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			type: type,
-			use_unkown_type: document.getElementById("checkUnknownType").checked,
-			dir: selected_dirs,
+			activity_ids: selected_activity_ids,
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
 			axis_x: axis_x,
 			axis_y: axis_y,
-			filename: document.getElementById("input_filename_plot").value
+			filename: document.getElementById("input_filename").value
 		})
 	});
-	//console.log("started computation...")
 	monitorProgress();
 }
 
 function monitorProgress() {
-	//console.log("Monitor Progress")
+	/*
+	Gets progress-updates during server tasks
+	*/
 	const interval = setInterval(
 		async () => {
 			const response = await fetch("/api/progress");
@@ -316,15 +196,19 @@ function monitorProgress() {
 }
 
 function displayProgress(data){
-	//console.log("Display progress:")
-	//console.log(data)
+	/*
+	Displays the computation progress during server tasks.
+	*/
 	const progress = data.total_progress;
-	// UI aktualisieren
+	// scale the UI
 	document.getElementById("progressBar").value = progress*100;
 	document.getElementById("progressText").textContent = "Current step: " + data.current_task + " - " + (progress*100).toFixed(2) + "%";	
 }
 
 async function openResultImage(){
+	/*
+	Opens an image in a new tab.
+	*/
 	const response = await fetch("/api/getResultPath");
 	const data = await response.json();
 	console.log(data)
@@ -335,7 +219,10 @@ async function openResultImage(){
 
 
 function initializeMap(){
-	// Karte erzeugen
+	/*
+	Handles the map tool for GPS location selection.
+	*/
+	// open map
 	map = L.map("map").setView([52.52, 13.405],mapzoom);
 
 	// OpenStreetMap Layer
@@ -346,24 +233,21 @@ function initializeMap(){
 		}
 	).addTo(map);
 
-	// Marker Variable
 	let marker = null;
 
-	// Klick auf Karte
+	// handle mouse click on map
 	map.on("click", function(event) {
 		const lat = event.latlng.lat;
 		const lng = event.latlng.lng;
 		latitude = lat
 		longitude = lng
-		// Alten Marker entfernen
+		// remove existing marker
 		if (marker !== null) {
 			map.removeLayer(marker);
 		}
-
-		// Neuen Marker setzen
+		// add new marker
 		marker = L.marker([lat, lng]).addTo(map);
-
-		// Koordinaten anzeigen
+		// get coordinates:
 		document.getElementById("coords").innerText = "Starting position: " + `Lat: ${lat.toFixed(5)}, ` + `Lng: ${lng.toFixed(5)}`;
 		console.log(lat, lng);
 	});
@@ -378,14 +262,13 @@ function on_zoom_input_change(zoom){
 	map.setZoom(zoom);
 }
 
-document.addEventListener(
-	"DOMContentLoaded",
-	() => {
-		initializeMap();
-		loadFolders();
-		loadDatabase();
-		// Initial tab selection:
-		document.getElementById("button_tab_howto").click()
-		inputDateMax.value = new Date().toISOString().slice(0, 10);
+document.addEventListener("DOMContentLoaded", () => {
+	const mapdiv = document.getElementById("map");
+	if (mapdiv) {
+		initializeMap()
 	}
-);
+	const date_range_max_selector = document.getElementById("inputDateMax");
+	if (date_range_max_selector) {
+		date_range_max_selector.value = new Date().toISOString().slice(0, 10);
+	}
+});

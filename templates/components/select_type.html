@@ -1,0 +1,15 @@
+<div class="panel floating">
+    <h3>Select activity type:</h3>
+	{% for type in activity_types %}
+	<!---<label>--->
+	<form id="form_select_type">
+		<input type="checkbox" id="checkbox_type_id" name="type_id" value="{{ type.id }}" required>
+		{{ type.name }}
+	</form>
+	<!---</label>--->
+	<br>
+	{% else %}
+	<p>No activity types found.</p>
+	{% endfor %}
+</div>
+

@@ -6,12 +6,10 @@ import math
 import numpy as np
 #import networkx as nx
 
-#from src import OSMMapDownloader as osmmd
-from src import GPXDataManager as GPXDM
 from src.SubTask import SubTask
 
 from src.misc_geometry import compute_angle_between_vectors, get_vector_as_mxb, project_point_on_vector, get_latlon_vector_length, round_gps
-from src.misc import load_gpx_file, parse_gps_from_gpx, ensure_dir_exists
+from src.misc import load_gpx_file, parse_gps_from_gpx, ensure_dir_exists, check_gps_range
 from org import METER_PER_DEG_LAT, METER_PER_DEG_LON, NODE_MERGE_PRECISION, STRAIGHT_PATH_MAX_DEGREE
 
 def get_edge_key(node_id_a, node_id_b):
@@ -452,7 +450,7 @@ class RouteGraph():
 				self.add_edge(new_edge)
 		return True
 
-	#### EXPORT GRAPH:
+	#### EXPORT GRAPH as networkx graph:
 	#def get_networkx_graph(self):
 	#	'''
 	#	returns networkx-graph from nodes and edges of this graph
@@ -467,51 +465,38 @@ class RouteGraph():
 class RouteGraphConstructor(SubTask):
 	def __init__(
 			self,
-			gpx_dir:str,
-			activity_type:str,
-			use_unknown_type:bool=False,
+			activities:list, # list of DBH.Activity.to_dict
 			lat_ref:float=None,
 			lon_ref:float=None,
 			delta_km:float=None,
-			dist_cutoff_km:int=None,
-			date_min:str=None,
-			date_max:str=None,
-			use_unknown_date:bool=False):
+			dist_cutoff_km:int=1000,
+			name:str=""
+			):
 		'''
-		constructs a graph that contains all routes from a specified directory,
-		if activity_type, lat/lon area, and date range fits into specified category
+		constructs a graph that contains all routes from a list of activities
 		'''
 		super().__init__("RouteGraphConstructor", 6)
-		self.gpx_dir = gpx_dir
-		self.activity_type = activity_type
-		self.use_unknown_type = use_unknown_type
+		self.activities = activities
 		self.lat_ref = lat_ref
 		self.lon_ref = lon_ref
 		self.delta_km = delta_km
 		self.dist_cutoff_km = dist_cutoff_km
-		self.date_min = date_min
-		self.date_max = date_max
-		self.use_unknown_date = use_unknown_date
+		self.name = name
+
 		self.rg = RouteGraph()
 
 	def get_routegraph(self):
-		dm = GPXDM.GPXDataManager(self.gpx_dir)
-		gpxs_filenames = dm.get_list_of_gpx_files(self.lat_ref, self.lon_ref, self.delta_km, self.activity_type, self.use_unknown_type, self.date_min, self.date_max, self.use_unknown_date)
-
-		for i in range(len(gpxs_filenames)):
-			print ("load gpx from "+gpxs_filenames[i])
-			(gpxdata, metadata) = load_gpx_file(gpxs_filenames[i])
+		for i in range(len(self.activities)):
+			#if check_gps_range(self.activities[i]["start_latitude"], self.activities[i]["start_longitude"], self.lat_ref, self.lon_ref, self.delta_km):
+			print ("load gpx from "+self.activities[i]["filepath"])
+			(gpxdata, metadata) = load_gpx_file(self.activities[i]["filepath"])
 			self._add_subgraph_from_gpx(gpxdata)
 		self.progress += 1
 		self.rg.simplify_graph()
 		self.progress += 2
 		self.rg._contract_straight_paths_by_angle(STRAIGHT_PATH_MAX_DEGREE)
 		self.progress += 2
-		self.rg.basename = self.activity_type
-		if self.date_min is not None:
-			self.rg.basename += "_from_"+str(self.date_min)
-		if self.date_max is not None:
-			self.rg.basename += "_until_"+str(self.date_max)
+		self.rg.basename = self.name
 		self.finish_progress()
 		return self.rg
 
@@ -523,10 +508,7 @@ class RouteGraphConstructor(SubTask):
 		previous_node = None
 		datapoint_dists = []
 
-		#last_distance = 0
-		#tmp_distance = 0
 		for datapoint in gpsdata:
-			#print (datapoint)
 			# construct node:
 			lat = datapoint["latitude"]
 			lon = datapoint["longitude"]
@@ -535,6 +517,8 @@ class RouteGraphConstructor(SubTask):
 			if lat == 0 or lon == 0:
 				continue
 			if self.dist_cutoff_km is not None:
+				# removes datapoints that are very far away
+				# this handles erroneous datapoints at (lat,lon) = (0,0)
 				if get_latlon_vector_length(lat-self.lat_ref, lon-self.lon_ref)/1000 > self.dist_cutoff_km:
 					previous_node = None
 					continue
@@ -543,7 +527,6 @@ class RouteGraphConstructor(SubTask):
 				# construct new node:
 				new_node = RouteGraphNode(datapoint)
 				self.rg.add_node(new_node)
-				#tmp_distance = 0
 			else:
 				# map datapoint to existing node:
 				new_node = self.rg.nodes[self.rg.nodes_key_to_id[(node_pos_lat, node_pos_lon)]]
@@ -560,11 +543,6 @@ class RouteGraphConstructor(SubTask):
 						edge_key = get_edge_key(previous_node.id, new_node.id)
 						self.rg.edges[edge_key].count += 1
 			previous_node = new_node
-		#print ("datapoint_distances:",np.mean(datapoint_dists))
-
-def construct_routegraph(gpx_dir:str, activity_type:str, lat_ref:float, lon_ref:float, delta_km:float, dist_cutoff_km:int=None, min_date:str=None, max_date:str=None):
-	RGC = RouteGraphConstructor(gpx_dir, activity_type, lat_ref, lon_ref, delta_km, dist_cutoff_km, min_date, max_date)
-	return RGC.rg
 
 if __name__ == '__main__':
 	pass

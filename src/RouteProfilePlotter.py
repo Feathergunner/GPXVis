@@ -11,7 +11,7 @@ import gpxpy
 
 from src.SubTask import SubTask
 
-from src.misc import get_gpx, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, float_to_pace_str, ensure_dir_exists
+from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str, ensure_dir_exists
 from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON, LAT_HOME, LON_HOME
 
 KEY_UNITS = {
@@ -25,7 +25,7 @@ KEY_UNITS = {
 	"speed" : "km/h",
 	"date" : "YYYY-MM-DD",
 	"total distance" : "km",
-	"total duration" : "h:min",
+	"total duration" : "h:min:sec",
 	"total elevation" : "m",
 }
 
@@ -64,7 +64,7 @@ def format_data(key, value):
 		dist_km = value/1000
 		return f"{dist_km:03.1f}"
 	elif key == "time":
-		return format_time(value)
+		return format_time_hours(value)
 	elif key == "height":
 		return f"{value:.0f}"
 	elif key == "height relative":
@@ -84,7 +84,7 @@ def format_data(key, value):
 		dist_km = value/1000
 		return f"{dist_km:03.1f}"
 	elif key == "total duration":
-		return format_time(value)
+		return format_time_hours(value)
 	elif key == "total elevation":
 		return f"{value:.0f}"
 
@@ -224,11 +224,18 @@ class Minisplit(Datapoint):
 			self.stats = previous_minisplit.stats
 
 class RouteProfilePlotter(SubTask):
+	'''
 	def __init__(self, directory:str, activity_type:str, date_min:str=None, date_max:str=None, use_unknown_date:bool=False, verbose=False):
 		self.data = []
 		self.verbose = verbose
 		self._load_data(directory, activity_type, date_min, date_max, use_unknown_date)
 		super().__init__("RouteProfilePlotter", 2+len(self.activity_gpxs)//10)
+		self.progress += 1
+	'''
+	def __init__(self, activities:list, verbose=False):
+		self.activities = activities
+		self.verbose = False
+		super().__init__("RouteProfilePlotter", 2+len(self.activities)//10)
 		self.progress += 1
 
 	def construct_filename(self, basename:str, suffix:str=""):
@@ -237,39 +244,24 @@ class RouteProfilePlotter(SubTask):
 			filename += "_"+suffix
 		return filename
 
-	def _load_data(self, directory:str, activity_type:str, date_min:str=None, date_max:str=None, use_unknown_date:bool=False):
-		self.date_min = date_min
-		self.date_max = date_max
-		self.use_unknown_date = use_unknown_date
-		if self.verbose:
-			print("Load data...")
-		(self.activity_gpxs, self.activity_metadata, gpxs_filenames, self.statistics) = get_gpx(directory, activity_type, date_min=self.date_min, date_max=self.date_max, use_unknown_date=self.use_unknown_date, verbose=self.verbose)
-		for i in range(len(gpxs_filenames)):
-			self.activity_metadata[i]["stats"] = self.statistics[gpxs_filenames[i]]
-		if self.verbose:
-			print ("loaded gpx files:")
-			print (gpxs_filenames)
-			print (self.activity_metadata)
-			print (self.statistics)
-
 	def parse_data(self):
 		# computes statistics like distances, speed from raw gpx-data:
 		if self.verbose:
 			print ("Parse data...")
-		for i in range(len(self.activity_gpxs)):
-			print (self.activity_metadata[i])
-			gpxdata = self.activity_gpxs[i]
+		self.data = []
+		for i in range(len(self.activities)):
 			if self.verbose:
-				print ("parse data:", self.activity_metadata[i]["name"], self.activity_metadata[i]["time"])
-			datapoints = []
+				print ("parse data:", self.activities[i]["name"], self.activities[i]["datetime"])
+			(gpxdata, metadata) = load_gpx_file(self.activities[i]["filepath"])
 			gpsdata = parse_gps_from_gpx(gpxdata)
+			datapoints = []
 			previous_datapoint = None
 			
 			# first pass: construct chain of datapoints
 			if self.verbose:
 				print ("construct datapoints...")
 			for gps_datapoint in gpsdata:
-				new_datapoint = Datapoint(gps_datapoint, previous_datapoint, self.activity_metadata[i]["stats"])
+				new_datapoint = Datapoint(gps_datapoint, previous_datapoint, self.activities[i])
 				if previous_datapoint is not None and new_datapoint.dist - previous_datapoint.dist > 1000:
 					# skip datapoints where gps coords jump far away 
 					continue
@@ -323,9 +315,6 @@ class RouteProfilePlotter(SubTask):
 				self.progress += 1
 
 	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str=None, basename:str=""):
-		#print (self.data)
-		#print (x_axis_key)
-		#print (y_axis_key)
 		plotdata = []
 		metadata = []
 		for i in range(len(self.data)):
@@ -334,17 +323,12 @@ class RouteProfilePlotter(SubTask):
 			data["xs"] = []
 			data["ys"] = []
 			data["color"] = []
-			data["meta"] = self.activity_metadata[i]
-			#print ("metadata:", data["meta"])
+			data["meta"] = self.activities[i]
 			for datapoint in activity:
 				data["xs"].append(datapoint.get_data_by_key(x_axis_key))
 				data["ys"].append(datapoint.get_data_by_key(y_axis_key))
 				if color_axis_key is not None:
 					data["color"].append(datapoint.get_data_by_key(color_axis_key))
-			#if x_axis_key == "date":
-			#	data["xs"] = data["xs"][0]
-			#if y_axis_key == "date":
-			#	data["ys"] = data["ys"][0]
 			if color_axis_key is not None:
 				data["color"] = data["color"][-1]
 			plotdata.append(data)
@@ -355,7 +339,6 @@ class RouteProfilePlotter(SubTask):
 			max_colorval = max(data["color"] for data in plotdata)
 			for data in plotdata:
 				data["color"] = (data["color"]-min_colorval)/(max_colorval-min_colorval+1)
-				#print (data["color"])
 
 		i = 0
 		for data in plotdata:
@@ -366,15 +349,7 @@ class RouteProfilePlotter(SubTask):
 			i += 1
 			if i%20 == 0:
 				self.progress += 1
-			#print (data["meta"])
-			#print (data["xs"])
-			#print (data["ys"])
 
-		#for i in range(len(plotdata))
-		#for data in plotdata:
-		#	print ("data_xs:", data["meta"])
-		#	if len(data["xs"])<10:
-		#		print ("data_xs (empty):",data["xs"],",",data["meta"])
 		min_x = min(min(data["xs"]) for data in plotdata)
 		if KEY_RANGE_MIN[x_axis_key] is not None:
 			min_x = max(min_x, KEY_RANGE_MIN[x_axis_key])
@@ -387,15 +362,7 @@ class RouteProfilePlotter(SubTask):
 		else:
 			xtickrange = [min_x]
 		xticklabels = [format_data(x_axis_key, x) for x in xtickrange]
-		#print ("x range:", min_x, max_x, x_diff)
-		#print (xtickrange)
-		#print (xticklabels)
 
-		#print ([data["ys"] for data in plotdata])
-		#for data in plotdata:
-		#	if None in data["ys"]:
-		#		print (data["meta"])
-		#		print (data["ys"])
 		min_y = min(min([y for y in data["ys"] if y is not None]) for data in plotdata)
 		if KEY_RANGE_MIN[y_axis_key] is not None:
 			min_y = max(min_y, KEY_RANGE_MIN[y_axis_key])
@@ -408,54 +375,25 @@ class RouteProfilePlotter(SubTask):
 		else:
 			ytickrange = [min_y]
 		yticklabels = [format_data(y_axis_key, y) for y in ytickrange]
-		#print(yticklabels)
-		#y_diff = max(data["ys"]) - min(data["ys"])
-		#print ("y range:", min_y, max_y, y_diff)
-		#ax = plt.gca()
 		plt.xlim(min_x-(x_diff/20), max_x+(x_diff/20))
 		plt.ylim(min_y-(y_diff/20), max_y+(y_diff/20))
-		#print ([KEY_RANGE_MIN[x_axis_key], KEY_RANGE_MAX[x_axis_key]])
-		#print ([KEY_RANGE_MIN[y_axis_key], KEY_RANGE_MAX[y_axis_key]])
 		plt.xticks(xtickrange, xticklabels, rotation=20)
 		plt.yticks(ytickrange, yticklabels)
 		plt.xlabel(x_axis_key + " ("+KEY_UNITS[x_axis_key]+")")
 		plt.ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
 		
-		#plt.show()
 		# save plot
 		ensure_dir_exists(os.path.join("output", "activities"))
 		if basename is not None and len(basename) > 0:
 			result_filename = basename+"_"
 		else:
 			result_filename = "activities_"
-		if self.date_min is not None:
-			result_filename += "from_"+str(self.date_min)+"_"
-		if self.date_max is not None:
-			result_filename += "until_"+str(self.date_max)+"_"
 		result_filename += x_axis_key+"_"+y_axis_key+".png"
 		outputpath = os.path.join("output","activities",result_filename)
 		plt.savefig(outputpath, bbox_inches='tight', pad_inches=0, dpi=300)
-		print ("Saved map image with routes in: "+outputpath)
 		plt.close('all')
 		self.finish_progress()
 		return outputpath
 
 if __name__ == '__main__':
-	test = False
-
-	# run example:
-	# specify some dates:
-	min_date = "2026-03-01"
-	max_date = "2026-03-10"
-
-	type = "running" # running, hiking, cycling
-
-	gpx_dir = GPX_DIR
-	if test:
-		gpx_dir = GPX_DIR_TEST
-		filename = None
-
-	rpp = RouteProfilePlotter()
-	rpp.load_data(gpx_dir, type, min_date=min_date, max_date=max_date)
-	rpp.parse_data()
-	rpp.plot("distance", "elevation gain", "date")
+	pass

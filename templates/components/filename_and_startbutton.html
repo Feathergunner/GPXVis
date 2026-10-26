@@ -1,0 +1,7 @@
+{% macro filename_and_startbutton(label, onclick) %}
+<div class="cleanpanel">
+	Filename (leave empty for generic filename based on parameters):
+	<input id="input_filename" type="text" value="">
+	<button onclick="{{ onclick }}">{{ label }}</button>
+</div>
+{% endmacro %}
