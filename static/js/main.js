@@ -83,7 +83,7 @@ async function getActivities(considergps=false, addcheckbox=false, defaultchecke
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
 			lat: latitude,
 			lon: longitude,
-			range: range,
+			range: document.getElementById("activity_range_selection").value,
 			consider_gps: considergps,
 			add_checkbox: addcheckbox,
 			default_checked: defaultchecked
