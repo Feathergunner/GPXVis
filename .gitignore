@@ -7,5 +7,5 @@ instance
 *.mp4
 *.gif
 !examples_and_screenshots/example_*.png
-!examples_and_screenshots/example_*.mp4
+!examples_and_screenshots/example_*.gif
 !examples_and_screenshots/screenshot_*.png

@@ -5,7 +5,7 @@ Visualizing data from gpx-files:
 - plotting routes on maps: supports plotting multiple routes on a single map, and different colors for sets of routess
 - freely configurable plots of distance, height, elevation gain, slope, and (if timestamps are contained in gpx-files) time, speed, pace
 
-![example_animation](examples_and_screenshots/example_animation.mp4 "Animation")
+![example_animation](examples_and_screenshots/example_animation.gif "Animation")
 
 ![example_map](examples_and_screenshots/example_map.png "Map")
 
