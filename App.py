@@ -108,6 +108,21 @@ def animations():
 		athletes=_athletes,
 		activity_types=_activity_types)
 
+@app.route("/settings")
+def settings():
+	_athletes = db.session.execute(
+		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
+	).scalars().all()
+
+	_activity_types = db.session.execute(
+		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
+	).scalars().all()
+
+	return render_template(
+		"settings.html",
+		athletes=_athletes,
+		activity_types=_activity_types)
+
 @app.route("/api/add_athlete", methods=["POST"])
 def add_athlete():
 	athlete_name = request.get_json().get("name", "")
@@ -142,16 +157,42 @@ def delete_activities():
 
 @app.route("/api/rename_activities", methods=["POST"])
 def rename_activities():
-	print ("rename_activities")
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
 	new_name = data.get("new_name", "")
-	print ("ids:", activity_ids)
-	print ("new name:", new_name)
 	DBH.rename_activities(activity_ids, new_name)
 	return {
 		"status": "ok"
 	}
+
+@app.route("/api/update_settings", methods=["POST"])
+def update_settings():
+	print ("update settings")
+	data = request.get_json()
+	athlete_ids = data.get("athlete_ids", "")
+	type_ids = data.get("type_ids", "")
+	ref_lat_raw = data.get("lat", "")
+	ref_lon_raw = data.get("lon", "")
+	if ref_lat_raw < 0:
+		ref_lat = None
+	else:
+		ref_lat = float(ref_lat_raw)
+	if ref_lon_raw < 0:
+		ref_lon = None		
+	else:
+		ref_lon = float(ref_lon_raw)
+
+	if len(athlete_ids) == 0:
+		athlete_id = None
+	else:
+		athlete_id = athlete_ids[0]
+	if len(type_ids) == 0:
+		type_id = None
+	else:
+		type_id = type_ids[0]
+	min_date = None
+	DBH.set_default_settings(athlete_id, type_id, min_date, ref_lat, ref_lon)
+	return {"status": "ok"}
 
 def get_activities_from_query(data, consider_gps):
 	athlete_ids = data.get("athlete_ids", "")

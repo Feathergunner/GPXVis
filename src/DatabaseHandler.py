@@ -69,6 +69,28 @@ class Activity(db.Model):
 			actdict["pace"] = construct_pace_string(self.duration, self.distance)
 		return actdict
 
+class DefaultSettings(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	athlete_id = db.Column(db.Integer, db.ForeignKey(Athlete.id),nullable=True)
+	activitytype_id = db.Column(db.Integer, db.ForeignKey(ActivityType.id),nullable=True)
+	mindate = db.Column(db.DateTime, nullable=True)
+	location_latitude = db.Column(db.Float, nullable=True)
+	location_longitude = db.Column(db.Float, nullable=True)
+
+	@property
+	def to_dict(self):
+		key_value_pairs = {
+				"athlete_id" : self.athlete_id,
+				"activitytype_id" : self.activitytype_id,
+				"mindate" : self.mindate,
+				"location_latitude" : self.location_latitude,
+				"location_longitude" : self.location_longitude
+		}
+		settings_dict = {
+			key : key_value_pairs[key] for key in key_value_pairs if key_value_pairs[key] is not None
+		}
+		return settings_dict
+
 def add_athlete(name:str):
 	existing_athlete = db.session.execute(db.select(Athlete).filter_by(name=name)).scalar_one_or_none()
 
@@ -77,7 +99,14 @@ def add_athlete(name:str):
 		db.session.add(athlete)
 		db.session.commit()
 	else:
+		## todo: raise exception
 		print("Error: Athlete with name:",name,"already exists.")
+		return
+
+	# if this is the first athlete, make this the default athlete:
+	all_athletes = get_all_athletes()
+	if len(all_athletes) == 1:
+		set_default_settings(athlete_id=all_athletes[0]["id"])
 
 def add_activitytype(name:str):
 	existing_activitytype = db.session.execute(db.select(ActivityType).filter_by(name=name)).scalar_one_or_none()
@@ -86,7 +115,6 @@ def add_activitytype(name:str):
 		activity = ActivityType(name=name)
 		db.session.add(activity)
 		db.session.commit()
-		print("New ActivityType",name,"added to DB.")
 	else:
 		print("Error: ActivityType with name:",name,"already exists.")
 
@@ -223,15 +251,68 @@ def rename_activities(activity_ids:list, new_name:str) -> None:
 		suffix = "_"+str(counter)
 	db.session.commit()
 
+def set_default_settings(
+		athlete_id:int=None,
+		activitytype_id:int=None,
+		mindate:datetime.datetime=None,
+		latitude:float=None,
+		longitude:float=None) -> None:
+	# get default setting, if one exists:
+	setting = db.session.execute(db.select(DefaultSettings).order_by(DefaultSettings.id)).scalar_one_or_none()
+	if setting is None:
+		# create new setting
+		setting = DefaultSettings()
+		db.session.add(setting)
+		db.session.commit()
+	# (else overwrite existing setting)
+
+	if athlete_id is not None:
+		setting.athlete_id = athlete_id
+	if activitytype_id is not None:
+		setting.activitytype_id = activitytype_id
+	if mindate is not None:
+		setting.mindate = mindate
+	if latitude is not None and longitude is not None:
+		setting.location_latitude = latitude
+		setting.location_longitude = longitude
+
+	db.session.commit()
+
+def get_default_settings():
+	'''
+	Gets default settings from database.
+	Assumes there is only one default setting.
+	'''
+	settings = db.session.execute(db.select(DefaultSettings).order_by(DefaultSettings.id)).scalar_one_or_none()
+	if settings is None:
+		return None
+	return settings.to_dict
+
+def delete_unused_files():
+	'''
+	checks all files in the gpxdata directory
+	and deletes those files that have no corresponding database activity entry.
+	'''
+
+	## todo
+
+	pass
+	
+
 def get_stats():
 	all_athletes = get_all_athletes()
 	all_types = get_all_activitytypes()
 	all_activities = db.session.execute(db.select(Activity).order_by(Activity.id)).scalars().all()
+	settings = get_default_settings()
 
 	print ("Database contains:")
 	print ("\tnumber of athletes:",len(all_athletes))
 	print ("\tnumber of types:",len(all_types))
 	print ("\tnumber of activities:",len(all_activities))
+	if settings is not None:
+		print ("\tsettings:",settings)
+	else:
+		print ("\tsettings: None")
 
 def test_db():
 	print ("\n #### run test_db ####\n")

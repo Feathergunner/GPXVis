@@ -1,6 +1,6 @@
 
-let latitude;
-let longitude;
+let latitude = -1;
+let longitude = -1;
 let mapzoom = 8;
 let map;
 let range = 5;
@@ -267,6 +267,20 @@ async function openResultImage(){
 	}
 }
 
+async function setDefaultSettings(){
+	const response = await fetch("/api/update_settings", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			athlete_ids: getFromSelection("athlete_id"),
+			type_ids: getFromSelection("type_id"),
+			lat: latitude,
+			lon: longitude
+		})
+	});
+}
 
 function initializeMap(){
 	/*

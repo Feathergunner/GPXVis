@@ -3,7 +3,7 @@
 
 {% block title %}Database{% endblock %}
 {% block content %}
-	<h1>Database</h1>
+	<h1>Database Management</h1>
 	{% include "components/query_selection_activity.html" %}
 	<div class="cleanpanel divrow">
 		<div class=" panel floating">
@@ -19,7 +19,7 @@
 	</div>
 
     {{ activity_selection_table("false", "true", "false") }}
-   
+    
    	<div class="cleanpanel divrow">
    		<div class="panel floating">
    			<p>Rename the selected activity.<br>If more than one activities are selected, names are enumerated.</p>
