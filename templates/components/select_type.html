@@ -3,7 +3,8 @@
 	{% for type in activity_types %}
 	<!---<label>--->
 	<form id="form_select_type">
-		<input type="checkbox" id="checkbox_type_id" name="type_id" value="{{ type.id }}" required>
+		<input type="checkbox" id="checkbox_type_id" name="type_id" value="{{ type.id }}" required
+		{% if type.id==default_setting.activitytype_id  %}checked{% endif %}>
 		{{ type.name }}
 	</form>
 	<!---</label>--->

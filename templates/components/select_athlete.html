@@ -3,7 +3,8 @@
 	{% for athlete in athletes %}
 	
 	<form id="form_select_athlete">
-		<input type="checkbox" id="checkbox_athlete_id" name="athlete_id" value="{{ athlete.id }}" required>
+		<input type="checkbox" id="checkbox_athlete_id" name="athlete_id" value="{{ athlete.id }}" required
+		{% if athlete.id==default_setting.athlete_id  %}checked{% endif %}>
 		{{ athlete.name }}
 	</form>
 	<br>

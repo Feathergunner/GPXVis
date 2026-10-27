@@ -40,9 +40,7 @@ def index():
 
 @app.route("/upload")
 def upload():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
 
 	return render_template(
 		"upload.html",
@@ -50,13 +48,8 @@ def upload():
 
 @app.route("/database")
 def database():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
-
-	_activity_types = db.session.execute(
-		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
+	_activity_types = DBH.get_all_activitytypes()
 
 	return render_template(
 		"database.html",
@@ -65,63 +58,51 @@ def database():
 
 @app.route("/statistics")
 def statistics():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
-
-	_activity_types = db.session.execute(
-		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
+	_activity_types = DBH.get_all_activitytypes()
+	defaults = DBH.get_default_settings()
 
 	return render_template(
 		"statistics.html",
 		athletes=_athletes,
-		activity_types=_activity_types)
+		activity_types=_activity_types,
+		default_setting=defaults)
 
 @app.route("/maps")
 def maps():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
-
-	_activity_types = db.session.execute(
-		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
+	_activity_types = DBH.get_all_activitytypes()
+	defaults = DBH.get_default_settings()
 
 	return render_template(
 		"maps.html",
 		athletes=_athletes,
-		activity_types=_activity_types)
+		activity_types=_activity_types,
+		default_setting=defaults)
 
 @app.route("/animations")
 def animations():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
-
-	_activity_types = db.session.execute(
-		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
+	_activity_types = DBH.get_all_activitytypes()
+	defaults = DBH.get_default_settings()
 
 	return render_template(
 		"animations.html",
 		athletes=_athletes,
-		activity_types=_activity_types)
+		activity_types=_activity_types,
+		default_setting=defaults)
 
 @app.route("/settings")
 def settings():
-	_athletes = db.session.execute(
-		db.select(DBH.Athlete).order_by(DBH.Athlete.name)
-	).scalars().all()
-
-	_activity_types = db.session.execute(
-		db.select(DBH.ActivityType).order_by(DBH.ActivityType.name)
-	).scalars().all()
+	_athletes = DBH.get_all_athletes()
+	_activity_types = DBH.get_all_activitytypes()
+	defaults = DBH.get_default_settings()
 
 	return render_template(
 		"settings.html",
 		athletes=_athletes,
-		activity_types=_activity_types)
+		activity_types=_activity_types,
+		default_setting=defaults)
 
 @app.route("/api/add_athlete", methods=["POST"])
 def add_athlete():
@@ -167,7 +148,6 @@ def rename_activities():
 
 @app.route("/api/update_settings", methods=["POST"])
 def update_settings():
-	print ("update settings")
 	data = request.get_json()
 	athlete_ids = data.get("athlete_ids", "")
 	type_ids = data.get("type_ids", "")
@@ -193,6 +173,14 @@ def update_settings():
 	min_date = None
 	DBH.set_default_settings(athlete_id, type_id, min_date, ref_lat, ref_lon)
 	return {"status": "ok"}
+
+@app.route("/api/get_default_map_parameter")
+def get_default_map_parameter():
+	print ("get default parameters")
+	defaults = DBH.get_default_settings()
+	return jsonify({
+		"default_latitude": defaults["location_latitude"],
+		"default_longitude": defaults["location_longitude"]})
 
 def get_activities_from_query(data, consider_gps):
 	athlete_ids = data.get("athlete_ids", "")

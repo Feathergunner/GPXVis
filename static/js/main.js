@@ -282,12 +282,34 @@ async function setDefaultSettings(){
 	});
 }
 
-function initializeMap(){
+async function initializeMap(){
 	/*
 	Handles the map tool for GPS location selection.
 	*/
+	let marker = null;
+	// ask for default map setting parameters:
+	const response = await fetch("/api/get_default_map_parameter");
+	const data = await response.json();
+	default_lat = data.default_latitude
+	default_lon = data.default_longitude
+	if (default_lat > 0){
+		latitude = default_lat;
+	}
+	if (default_lon > 0){
+		longitude = default_lon;
+	}
+
 	// open map
-	map = L.map("map").setView([52.52, 13.405],mapzoom);
+	if (default_lat > 0 && default_lon > 0){
+		// use location from default setting
+		map = L.map("map").setView([latitude, longitude],mapzoom);
+		// also place a marker:
+		marker = set_marker_on_map(marker, latitude, longitude)
+	}else{
+		// no default setting, focus map on Berlin
+		map = L.map("map").setView([52.52, 13.405],mapzoom);
+		// place no marker in this case
+	}
 
 	// OpenStreetMap Layer
 	L.tileLayer(
@@ -297,29 +319,31 @@ function initializeMap(){
 		}
 	).addTo(map);
 
-	let marker = null;
-
 	// handle mouse click on map
 	map.on("click", function(event) {
 		const lat = event.latlng.lat;
 		const lng = event.latlng.lng;
 		latitude = lat
 		longitude = lng
-		// remove existing marker
-		if (marker !== null) {
-			map.removeLayer(marker);
-		}
-		// add new marker
-		marker = L.marker([lat, lng]).addTo(map);
-		// get coordinates:
-		document.getElementById("coords").innerText = "Starting position: " + `Lat: ${lat.toFixed(5)}, ` + `Lng: ${lng.toFixed(5)}`;
-		console.log(lat, lng);
+		marker = set_marker_on_map(marker, lat, lng)
 	});
 	map.on("zoom", function(event) {
 		const zoom = map.getZoom();
 		mapzoom = zoom;
 		document.getElementById("zoom").value = mapzoom;
 	})
+}
+
+function set_marker_on_map(current_marker, lat, lng){
+	// remove existing marker
+	if (current_marker !== null) {
+		map.removeLayer(current_marker);
+	}
+	// add new marker
+	new_marker = L.marker([lat, lng]).addTo(map);
+	// update text label:
+	document.getElementById("coords").innerText = "Starting position: " + `Lat: ${lat.toFixed(5)}, ` + `Lng: ${lng.toFixed(5)}`;
+	return new_marker
 }
 
 function on_zoom_input_change(zoom){
