@@ -70,6 +70,13 @@ async function getActivities(considergps=false, addcheckbox=false, defaultchecke
 
 	Gets a rendered html-table containing the activity-metadata from the server.
 	*/
+
+	if (considergps){
+		range = document.getElementById("activity_range_selection").value;
+	} else{
+		range = 0;
+	}
+
 	const response = await fetch("/api/get_activities_table", {
 		method: "POST",
 		headers: {
@@ -83,7 +90,7 @@ async function getActivities(considergps=false, addcheckbox=false, defaultchecke
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
 			lat: latitude,
 			lon: longitude,
-			range: document.getElementById("activity_range_selection").value,
+			range: range,
 			consider_gps: considergps,
 			add_checkbox: addcheckbox,
 			default_checked: defaultchecked
