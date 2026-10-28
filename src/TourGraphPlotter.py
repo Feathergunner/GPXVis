@@ -210,6 +210,10 @@ class TourGraphPlotter(SubTask):
 			elif split_type == "time":
 				tourgraph_splits.append(self.tourgraphs[i].get_split_segments(splittime=split_size, offset=startindices[i]))
 
+		# update process progress:
+		total_splits = sum([len(tg_splits) for tg_splits in tourgraph_splits])
+		self.weight += total_splits
+
 		# init plot:
 		self.axes.set_axis_off()
 		figure_size_inches = self.figure.get_size_inches()
@@ -231,9 +235,9 @@ class TourGraphPlotter(SubTask):
 		reached_final_split = False
 		with subprocess.Popen(cmd, stdin=subprocess.PIPE) as proc:
 			while not reached_final_split:
+				# update process progress:
+				self.progress += 1
 				reached_final_split = True
-				if current_split_id%10 == 0:
-					print ("current split:", current_split_id)
 				for tour_id in range(len(self.tourgraphs)):
 					remaining_splits = False
 					tg = self.tourgraphs[tour_id]
