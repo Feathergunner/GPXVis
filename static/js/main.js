@@ -357,6 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 	const date_range_max_selector = document.getElementById("inputDateMax");
 	if (date_range_max_selector) {
-		date_range_max_selector.value = new Date().toISOString().slice(0, 10);
+		var maxDate = new Date();
+		maxDate.setDate(maxDate.getDate() + 1);
+		//date_range_max_selector.value = new Date().toISOString().slice(0, 10);
+		date_range_max_selector.value = maxDate.toISOString().slice(0, 10);
 	}
 });
