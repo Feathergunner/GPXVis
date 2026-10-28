@@ -41,68 +41,72 @@ def index():
 @app.route("/upload")
 def upload():
 	_athletes = DBH.get_all_athletes()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"upload.html",
-		athletes=_athletes)
+		athletes=_athletes,
+		default_setting=_defaults)
 
 @app.route("/database")
 def database():
 	_athletes = DBH.get_all_athletes()
 	_activity_types = DBH.get_all_activitytypes()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"database.html",
 		athletes=_athletes,
-		activity_types=_activity_types)
+		activity_types=_activity_types,
+		default_setting=_defaults)
 
 @app.route("/statistics")
 def statistics():
 	_athletes = DBH.get_all_athletes()
 	_activity_types = DBH.get_all_activitytypes()
-	defaults = DBH.get_default_settings()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"statistics.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
-		default_setting=defaults)
+		default_setting=_defaults)
 
 @app.route("/maps")
 def maps():
 	_athletes = DBH.get_all_athletes()
 	_activity_types = DBH.get_all_activitytypes()
-	defaults = DBH.get_default_settings()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"maps.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
-		default_setting=defaults)
+		default_setting=_defaults)
 
 @app.route("/animations")
 def animations():
 	_athletes = DBH.get_all_athletes()
 	_activity_types = DBH.get_all_activitytypes()
-	defaults = DBH.get_default_settings()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"animations.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
-		default_setting=defaults)
+		default_setting=_defaults)
 
 @app.route("/settings")
 def settings():
 	_athletes = DBH.get_all_athletes()
 	_activity_types = DBH.get_all_activitytypes()
-	defaults = DBH.get_default_settings()
+	_defaults = DBH.get_default_settings()
 
 	return render_template(
 		"settings.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
-		default_setting=defaults)
+		default_setting=_defaults)
 
 @app.route("/api/add_athlete", methods=["POST"])
 def add_athlete():

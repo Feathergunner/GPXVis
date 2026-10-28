@@ -12,7 +12,7 @@ def get_metadata_from_file(file, compute_aggregates:bool=False):
 	parses a gpx-file and extracts start location and date.
 	computes aggregated data (total distance, total time, total elevation, ...) if compute_aggregates is true
 	'''
-	print ("get metadata...")
+	#print ("get metadata...")
 	gpxdata = gpxpy.parse(file)
 	# proceed through coordinates to skip potential (0,0) points at the beginning:
 	first_correct_datapoint = 0
@@ -20,9 +20,6 @@ def get_metadata_from_file(file, compute_aggregates:bool=False):
 		first_correct_datapoint += 1
 	start_lat = gpxdata.tracks[0].segments[0].points[first_correct_datapoint].latitude
 	start_lon = gpxdata.tracks[0].segments[0].points[first_correct_datapoint].longitude
-
-	print ("gpxdata:", gpxdata)
-	#print (gpxdata.time)
 
 	# get other metadata:
 	if gpxdata.time is not None:
@@ -54,7 +51,6 @@ def get_metadata_from_file(file, compute_aggregates:bool=False):
 			current_lat = datapoints[i]["latitude"]
 			current_lon = datapoints[i]["longitude"]
 			current_elevation = datapoints[i]["elevation"]
-		print ("last datapoint:", datapoints[-1])
 		if datapoints[-1]["timestamp"] is not None:
 			total_time = datapoints[-1]["timestamp"]-datapoints[first_correct_datapoint]["timestamp"]
 
