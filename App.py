@@ -269,12 +269,12 @@ def run_TourAnimation():
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
 
-	filepath = db.session.execute(
-		db.select(DBH.Activity.filepath)
-			.where(DBH.Activity.id == activity_ids[0])
-	).scalar_one_or_none()
+	activities = db.session.execute(
+		db.select(DBH.Activity)
+			.where(DBH.Activity.id.in_(activity_ids))
+	).scalars().all()
 
-	aim_ta.set_full_filepath(filepath)
+	aim_ta.set_activities(activities)
 	aim_ta.set_zoom(data.get("mapzoom",""))
 	aim_ta.set_filename_prefix(data.get("filename", ""))
 	

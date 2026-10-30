@@ -96,25 +96,20 @@ class AppInputManagerRouteMap(AppInputManager):
 class AppInputManagerTourAnimation(AppInputManager):
 	def __init__(self):
 		super().__init__("AppInputManagerTourAnimation",2)
-		self.filepath = None
-
+		
 	def __str__(self):
 		retstr = super().__str__()
-		retstr += "filepath: "+str(self.filepath)
 		return retstr
 
-	def set_filepath(self, filepath:str):
-		self.filepath = os.path.join("gpxdata",filepath)
-
-	def set_full_filepath(self, _filepath:str):
-		self.filepath = _filepath
-
 	def run_animation_builder(self):
-		# construct tourgraph from gpx file:
-		tg = TG.TourGraph()
-		tg.construct_from_gpx(self.filepath)
+		tourgraphs = []
+		for activity in self.activities:
+			tgc = TG.TourGraphConstructor(activity)
+			self.add_task_child(tgc)
+			tourgraphs.append(tgc.get_tourgraph())
+		
 		# plot animation:
-		tgp = TGP.TourGraphPlotter([tg], self.map_zoom_lvl)
+		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl)
 		self.add_task_child(tgp)
 		tgp.create_tour_animation(split_type="time", split_size=15, fps=4, synchronize_start="no", result_filename=self.filename_prefix, add_legend=False)
 		self.finish_progress()

@@ -83,6 +83,7 @@ class TourGraph():
 		self.edges.append(new_edge)
 
 	def construct_from_gpx(self, gpx_filename:str):
+		## todo: move this to TourGraphConstructor and add progress tracking
 		(gpxdata, metadata) = load_gpx_file(gpx_filename)
 		gpsdata = parse_gps_from_gpx(gpxdata)
 		previous_node = None
@@ -118,17 +119,19 @@ class TourGraph():
 		before the first segment starts (used to synchronize the segments multiple tours).
 		'''
 
-		print ("get split segments for tour",self.basename)
+		## todo: move this to TourGraphConstructor and add progress tracking
+
+		#print ("get split segments for tour",self.basename)
 		if splitdistance is None and splittime is None:
 			splitdistance = 100
 
 		current_total_covered = 0
 		if splitdistance is not None:
 			next_split_end = splitdistance
-			print ("  by distance:",splitdistance)
+			#print ("  by distance:",splitdistance)
 		else:
 			next_split_end = splittime
-			print ("  by time:",splittime)
+			#print ("  by time:",splittime)
 
 		start_edge = offset
 
@@ -186,3 +189,14 @@ class TourGraph():
 		#print ("Constructed splits for tour",self.basename,":",len(splits))
 		#print ("split sizes (edges):", [len(s[edge_ids]) for s in splits])
 		return splits
+
+class TourGraphConstructor(SubTask):
+	def __init__(self, activity):
+		super().__init__("TourGraphConstructor", 1)
+		self.activity = activity
+
+	def get_tourgraph(self):
+		tg = TourGraph(self.activity["name"])
+		tg.construct_from_gpx(self.activity["filepath"])
+		self.finish_progress()
+		return tg
