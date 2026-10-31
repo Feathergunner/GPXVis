@@ -1,16 +1,23 @@
-<div class="panel divrow">
+<div class="cleanpanel divrow">
     <!-- <h3>Animation settings:</h3> -->
-    <div class="cleanpanel floating"> 
+    <div class="panel floating"> 
     	Speedup
-		<input id="input_animation_speedup" type="number"  min="10" max="3600" value="60"> <br>
-		(seconds realtime per second animation)
-	</div>
-	<div class="cleanpanel floating"> 
+		<input id="input_animation_speedup" type="number"  min="10" max="3600" value="60">
+		(seconds realtime per second animation) <br>
+
 		Frames per second:
 		<input id="input_animation_fps" type="number" min="1" max="30" value="4">
+
+		<br>
+
+		<input id="input_animation_zoom" type="checkbox" name="input_animation_zoom"> Zoom in (animation follows first activity)
+
+	<!--</div>
+	<div class="panel floating"> 
 	</div>
-	<div class="cleanpanel floating">
-		<input id="input_animation_zoom" type="checkbox" name="input_animation_zoom"> Zoom in (on first activity)
+	<div class="panel floating">-->
+		
 	</div>
+    {% include "components/select_color_key.html" %}
 </div>
 

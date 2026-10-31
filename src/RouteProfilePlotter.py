@@ -10,9 +10,10 @@ from datetime import datetime, timezone
 import gpxpy
 
 from src.SubTask import SubTask
+from src import ColorManager as CM
 
 from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str, ensure_dir_exists
-from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON, LAT_HOME, LON_HOME
+from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON, LINECOLORS
 
 KEY_UNITS = {
 	"distance" : "km",
@@ -224,14 +225,6 @@ class Minisplit(Datapoint):
 			self.stats = previous_minisplit.stats
 
 class RouteProfilePlotter(SubTask):
-	'''
-	def __init__(self, directory:str, activity_type:str, date_min:str=None, date_max:str=None, use_unknown_date:bool=False, verbose=False):
-		self.data = []
-		self.verbose = verbose
-		self._load_data(directory, activity_type, date_min, date_max, use_unknown_date)
-		super().__init__("RouteProfilePlotter", 2+len(self.activity_gpxs)//10)
-		self.progress += 1
-	'''
 	def __init__(self, activities:list, verbose=False):
 		self.activities = activities
 		self.verbose = False
@@ -314,9 +307,12 @@ class RouteProfilePlotter(SubTask):
 			if i%20 == 0:
 				self.progress += 1
 
-	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str=None, basename:str=""):
+	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str=""):
 		plotdata = []
 		metadata = []
+
+		colormanager = CM.ColorManager(color_axis_key, self.activities)
+
 		for i in range(len(self.data)):
 			activity = self.data[i]
 			data = {}
@@ -327,25 +323,12 @@ class RouteProfilePlotter(SubTask):
 			for datapoint in activity:
 				data["xs"].append(datapoint.get_data_by_key(x_axis_key))
 				data["ys"].append(datapoint.get_data_by_key(y_axis_key))
-				if color_axis_key is not None:
-					data["color"].append(datapoint.get_data_by_key(color_axis_key))
-			if color_axis_key is not None:
-				data["color"] = data["color"][-1]
+			data["color"] = colormanager.get_color(self.activities[i])
 			plotdata.append(data)
-
-		if color_axis_key is not None:
-			# normalize color-values:
-			min_colorval = min(data["color"] for data in plotdata)
-			max_colorval = max(data["color"] for data in plotdata)
-			for data in plotdata:
-				data["color"] = (data["color"]-min_colorval)/(max_colorval-min_colorval+1)
 
 		i = 0
 		for data in plotdata:
-			if color_axis_key is not None:
-				plt.plot(data["xs"], data["ys"], c=mpl.colormaps["viridis"](data["color"]))
-			else:
-				plt.plot(data["xs"], data["ys"])
+			plt.plot(data["xs"], data["ys"], c=data["color"])
 			i += 1
 			if i%20 == 0:
 				self.progress += 1

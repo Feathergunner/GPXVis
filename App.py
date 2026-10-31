@@ -268,9 +268,6 @@ def run_TourAnimation():
 	current_computation = "TourAnimation"
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
-	speed_up = data.get("animation_speedup", "")
-	fps = data.get("animation_fps", "")
-	zoom_in = data.get("animation_zoom_in", "")
 
 	activities = db.session.execute(
 		db.select(DBH.Activity)
@@ -278,7 +275,8 @@ def run_TourAnimation():
 	).scalars().all()
 
 	aim_ta.set_activities(activities)
-	aim_ta.set_zoom(data.get("mapzoom",""))
+	aim_ta.set_zoom(data.get("mapzoom", ""))
+	aim_ta.set_color_key(data.get("color_key", ""))
 	aim_ta.set_animation_settings(int(data.get("animation_speedup", "")), int(data.get("animation_fps", "")), bool(data.get("animation_zoom_in", "")))
 	aim_ta.set_filename_prefix(data.get("filename", ""))
 	
@@ -341,6 +339,7 @@ def run_DataPlotter():
 	aim_ad.set_activities(get_activities_by_ids(activity_ids))
 	aim_ad.set_key_x(axis_x)
 	aim_ad.set_key_y(axis_y)
+	aim_ad.set_color_key(data.get("color_key", ""))
 	aim_ad.set_filename_prefix(filename)
 
 	current_job = aim_ad

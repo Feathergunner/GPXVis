@@ -5,6 +5,9 @@
 GPX_DIR = "gpxdata"
 GPX_DIR_TEST = "gpxdata_test"
 
+# default colors:
+LINECOLORS = ["red", "blue", "green", "purple", "magenta", "orange", "cyan", "pink", "olive"]
+
 # approximation of meters per gps-degree.
 # We only need a rough approximation, the values are only used to bound the order of magnitude of error when rounding lat/lon data
 # value for latitude holds everywhere:

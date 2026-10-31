@@ -12,14 +12,14 @@ from PIL import Image, ImageDraw
 
 from src import OSMMapDownloader as osmmd
 from src import TourGraph as TG
+from src import ColorManager as CM
 from src.SubTask import SubTask
 
 from src.misc import ensure_dir_exists, format_time, format_time_hours
 from src.misc_geometry import get_latlon_vector_length
-from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
+from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME, LINECOLORS
 
 LINEWIDTH = 1
-LINECOLORS = ["red", "blue", "green", "magenta", "orange", "purple", "cyan", "olive", "pink"]
 VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "elevation_avg"]
 
 
@@ -39,6 +39,7 @@ class TourGraphPlotter(SubTask):
 			zoom:int,
 			add_border:bool=True,
 			dpi:int=100,
+			color_key:str="singular",
 			add_profile:bool=False):
 		self.tourgraphs = tourgraphs
 
@@ -46,6 +47,7 @@ class TourGraphPlotter(SubTask):
 		self.add_border = add_border
 		self.dpi = dpi
 		self.add_profile = add_profile
+		self.color_key = color_key
 		super().__init__("TourGraphPlotter", len(self.tourgraphs)+2)
 
 		# gps and maptile stats:
@@ -227,6 +229,9 @@ class TourGraphPlotter(SubTask):
 			outputpath
 		]
 
+		# initialize colormanager:
+		colormanager = CM.ColorManager(self.color_key, [tg.activity for tg in self.tourgraphs])
+
 		# construct synchronized splits:
 		startindices = [0]*len(self.tourgraphs)
 		if synchronize_start == "starttime":
@@ -253,8 +258,8 @@ class TourGraphPlotter(SubTask):
 		tour_ys = [[] for _ in self.tourgraphs]
 		for i in range(len(self.tourgraphs)):
 			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
-			line, = self.axes.plot([], [], c=LINECOLORS[i], linewidth=LINEWIDTH*100/self.dpi, zorder=i, label=self.tourgraphs[i].basename)
-			point, = self.axes.plot([], [], c=LINECOLORS[i], marker='o', markersize=400/self.dpi, zorder=20+i)
+			line, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), linewidth=LINEWIDTH*100/self.dpi, zorder=i, label=self.tourgraphs[i].basename)
+			point, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), marker='o', markersize=400/self.dpi, zorder=20+i)
 			lines.append(line)
 			markerpoints.append(point)
 

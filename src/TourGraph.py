@@ -56,7 +56,8 @@ class TourGraph():
 	# to plot tour with color-coded graph segments
 	# or to create tour animation 
 
-	def __init__(self, name:str=""):
+	def __init__(self, activity, name:str=""):
+		self.activity = activity # metadata, required for coloring
 		self.nodes = {}
 		self.edges = []
 		self.start_node_id = -1
@@ -196,7 +197,7 @@ class TourGraphConstructor(SubTask):
 		self.activity = activity
 
 	def get_tourgraph(self):
-		tg = TourGraph(self.activity["name"])
+		tg = TourGraph(self.activity, self.activity["name"])
 		tg.construct_from_gpx(self.activity["filepath"])
 		self.finish_progress()
 		return tg

@@ -191,6 +191,7 @@ async function runTourPlotter() {
 			animation_speedup: document.getElementById("input_animation_speedup").value,
 			animation_fps: document.getElementById("input_animation_fps").value,
 			animation_zoom_in: document.getElementById("input_animation_zoom").checked,
+			color_key: document.getElementById("form_select_color_key").elements["color_key"].value,
 			filename: document.getElementById("input_filename").value
 		})
 	});
@@ -201,12 +202,6 @@ async function runDataPlotter() {
 	/*
 	Initiates the RouteProfilePlotter
 	*/
-
-	var form_axis_x = document.getElementById("form_select_axis_x");
-	const axis_x = form_axis_x.elements["radio_axis_x"].value;
-	var form_axis_y= document.getElementById("form_select_axis_y");
-	const axis_y = form_axis_y.elements["radio_axis_y"].value;
-
 	const response = await fetch("/api/runDataPlotter", {
 		method: "POST",
 		headers: {
@@ -217,8 +212,9 @@ async function runDataPlotter() {
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
-			axis_x: axis_x,
-			axis_y: axis_y,
+			axis_x: document.getElementById("form_select_axis_x").elements["radio_axis_x"].value,
+			axis_y: document.getElementById("form_select_axis_y").elements["radio_axis_y"].value,
+			color_key: document.getElementById("form_select_color_key").elements["color_key"].value,
 			filename: document.getElementById("input_filename").value
 		})
 	});

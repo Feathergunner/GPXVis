@@ -14,7 +14,7 @@ from org import GPX_DIR
 class AppInputManager(SubTask):
 	def __init__(self, taskname:str, taskweight:int):
 		self.map_zoom_lvl = None
-		self.line_color = None
+		self.color_key = None
 		self.filename_prefix = None
 		self.outputfilepath = None
 		super().__init__(taskname, taskweight)
@@ -22,7 +22,7 @@ class AppInputManager(SubTask):
 	def __str__(self):
 		retstr = super().__str__()+"\n"
 		retstr += "Target Filename: "+str(self.filename_prefix)+"\n"
-		retstr += "line_color: "+str(self.line_color)+"\n"
+		retstr += "line color specified by: "+str(self.color_key)+"\n"
 		return retstr
 
 	def set_zoom(self, map_zoom_lvl:int):
@@ -36,6 +36,9 @@ class AppInputManager(SubTask):
 
 	def set_filename_prefix(self, filename:str):
 		self.filename_prefix = filename
+
+	def set_color_key(self, color_key:str):
+		self.color_key = color_key
 
 class AppInputManagerRouteMap(AppInputManager):
 	def __init__(self):
@@ -114,7 +117,7 @@ class AppInputManagerTourAnimation(AppInputManager):
 			tourgraphs.append(tgc.get_tourgraph())
 		
 		# plot animation:
-		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl)
+		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl, color_key=self.color_key)
 		self.add_task_child(tgp)
 		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix, add_legend=False)
 		self.finish_progress()
@@ -124,7 +127,6 @@ class AppInputManagerActivityData(AppInputManager):
 		super().__init__("AppInputManagerActivityData",1)
 		self.axis_x_key = None
 		self.axis_y_key = None
-		self.axis_color_key = None
 
 	def __str__(self):
 		retstr = super().__str__()
@@ -137,14 +139,11 @@ class AppInputManagerActivityData(AppInputManager):
 	def set_key_y(self, key:str):
 		self.axis_y_key = key
 
-	def set_key_color(self, key:str):
-		self.axis_color_key = key
-
 	def run_plotter(self):
 		# plot daragraph of activities:
 		rpp = RPP.RouteProfilePlotter(self.activities)
 		self.add_task_child(rpp)
 		rpp.parse_data()
-		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, basename=self.filename_prefix)
+		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix)
 		self.finish_progress()
 		return self.outputfilepath
