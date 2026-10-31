@@ -52,10 +52,10 @@ python 3.10-ish with packages:
 and ffmpeg (to generate the animations).
 
 ## Future Features
-- [ ] Support for more gpx-annotations, like heartrate.
-- [ ] Improved plots (improved design, meaningful colors, support more parameters).
-- [ ] More options for creating animations (multiple activities at once, zoomed-in map).
-- [x] QOL features: default parameters.
-- [ ] Improved progress bar (some processes need to provide more informations and stats).
-- [ ] Progress bar for uploading activities.
 - [ ] Labels for maps and animations.
+- [ ] Improved plots (improved design, meaningful colors, support more parameters).
+- [ ] Progress bar for uploading activities.
+- [ ] Support for more gpx-annotations, like heartrate.
+- [x] More options for creating animations (multiple activities at once, zoomed-in map).
+- [x] QOL features: default parameters.
+- [x] Improved progress bar (some processes need to provide more informations and stats).
