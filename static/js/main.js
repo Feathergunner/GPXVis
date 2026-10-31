@@ -188,6 +188,9 @@ async function runTourPlotter() {
 		body: JSON.stringify({
 			activity_ids: getFromSelection("activity_id"),
 			mapzoom: mapzoom,
+			animation_speedup: document.getElementById("input_animation_speedup").value,
+			animation_fps: document.getElementById("input_animation_fps").value,
+			animation_zoom_in: document.getElementById("input_animation_zoom").checked,
 			filename: document.getElementById("input_filename").value
 		})
 	});

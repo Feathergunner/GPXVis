@@ -101,6 +101,11 @@ class AppInputManagerTourAnimation(AppInputManager):
 		retstr = super().__str__()
 		return retstr
 
+	def set_animation_settings(self, speedup:int, fps:int, zoom_in:bool):
+		self.speedup = speedup
+		self.fps = fps
+		self.zoom_in = zoom_in
+
 	def run_animation_builder(self):
 		tourgraphs = []
 		for activity in self.activities:
@@ -111,7 +116,7 @@ class AppInputManagerTourAnimation(AppInputManager):
 		# plot animation:
 		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl)
 		self.add_task_child(tgp)
-		tgp.create_tour_animation(split_type="time", split_size=15, fps=4, synchronize_start="no", result_filename=self.filename_prefix, add_legend=False)
+		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix, add_legend=False)
 		self.finish_progress()
 
 class AppInputManagerActivityData(AppInputManager):

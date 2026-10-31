@@ -169,18 +169,48 @@ class TourGraphPlotter(SubTask):
 			split_size:int=100,
 			fps:int=10,
 			synchronize_start:str="distance",
+			zoom_in:bool=False,
 			add_legend:bool=False,
+			img_dim:int=512,
 			filename:str=None) -> None:
 		'''
-		Construct animation frames and use ffmpeg to create an mp4 video file
+		Construct animation frames and use ffmpeg to create an mp4 video file.
+
+		split_type:
+			defines which parameter is used to define split sizes.
+			Must be "distance" or "time".
+		plit_size:
+			defines the length of a split, measured in the split_type.
+		fps:
+			frames per second in the generated video
+		synchronize_start:
+			defines if and how all tours are synchronized to a common start.
+			Must be one of:
+				"no": no synchronizations, all tours are plotted fully
+				"distance": tours are cropped at the beginning, so that all tours start at a
+					common point with minimal spacial distance to each other.
+				"time": tours are cropped at the beginning, so that all tours start at a
+					common timestamp.
+		zoom_in:
+			if True, the animation at each frame only shows a small portion of the map,
+			centered at the current position of the first tour.
+		add_legend:
+			if True, a legend is added
+		img_dim:
+			specifies the image dimensions of the frames. Currently only used with zoom_in
 		'''
 
-		ensure_dir_exists(os.path.join("output","animaions"))
+		ensure_dir_exists(os.path.join("output","animations"))
 		if filename is not None:
-			outputpath = os.path.join("output","animaions",filename+".mp4")
+			outputpath = os.path.join("output","animations",filename+".mp4")
 		else:
-			outputpath = os.path.join("output","animaions",self.filename+".mp4")
+			outputpath = os.path.join("output","animations",self.filename+".mp4")
 
+		if zoom_in:
+			# set figure size
+			self.figure.set_size_inches(img_dim/self.figure.dpi, img_dim/self.figure.dpi)
+			self.im_pxl_x = img_dim
+			self.im_pxl_y = img_dim
 		# ffmpeg command with settings:
 		cmd = [
 			"ffmpeg",
@@ -255,6 +285,17 @@ class TourGraphPlotter(SubTask):
 						tour_ys[tour_id].append(y)
 						lines[tour_id].set_data(tour_xs[tour_id], tour_ys[tour_id])
 						markerpoints[tour_id].set_data([tour_xs[tour_id][-1]], [tour_ys[tour_id][-1]])
+
+						if zoom_in and tour_id == 0:
+							# zoom in to map section around current position:
+							x_min = int(x - img_dim/2)
+							x_max = int(x + img_dim/2)
+							y_min = int(y + img_dim/2)
+							y_max = int(y - img_dim/2)
+							self.axes.set_xlim(x_min, x_max)
+							self.axes.set_ylim(y_min, y_max)
+							# set figure size
+							#self.figure.set_size_inches(img_dim/self.figure.dpi, img_dim/self.figure.dpi)
 					reached_final_split = reached_final_split and not remaining_splits
 
 				# convert pyplot plot to PIL image:
@@ -558,7 +599,9 @@ class TourGraphPlotter(SubTask):
 			split_size:int=100,
 			fps:int=10,
 			synchronize_start:str="no",
-			add_legend:bool=True,
+			zoom_in:bool=False,
+			add_legend:bool=False,
+			img_dim:int=512,
 			result_filename:str=None):
 
 		if split_type not in ["distance", "time"]:
@@ -573,4 +616,4 @@ class TourGraphPlotter(SubTask):
 				result_filename = result_filename[:-4]
 
 		self.progress += 1
-		self._plot_animated_tours_to_mp4(split_type=split_type, split_size=split_size, fps=fps, synchronize_start=synchronize_start, add_legend=add_legend, filename=result_filename)
+		self._plot_animated_tours_to_mp4(split_type=split_type, split_size=split_size, fps=fps, synchronize_start=synchronize_start, zoom_in=zoom_in, add_legend=add_legend, filename=result_filename)

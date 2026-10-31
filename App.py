@@ -268,6 +268,9 @@ def run_TourAnimation():
 	current_computation = "TourAnimation"
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
+	speed_up = data.get("animation_speedup", "")
+	fps = data.get("animation_fps", "")
+	zoom_in = data.get("animation_zoom_in", "")
 
 	activities = db.session.execute(
 		db.select(DBH.Activity)
@@ -276,6 +279,7 @@ def run_TourAnimation():
 
 	aim_ta.set_activities(activities)
 	aim_ta.set_zoom(data.get("mapzoom",""))
+	aim_ta.set_animation_settings(int(data.get("animation_speedup", "")), int(data.get("animation_fps", "")), bool(data.get("animation_zoom_in", "")))
 	aim_ta.set_filename_prefix(data.get("filename", ""))
 	
 	current_job = aim_ta

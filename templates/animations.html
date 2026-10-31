@@ -9,6 +9,8 @@
     {% include "components/query_selection_activity.html" %}
     {% include "components/select_mapsettings.html" %}
     {{ activity_selection_table("true", "true", "false") }}
+    {% include "components/select_animationsettings.html" %}
+
     {{ filename_and_startbutton("Create animated tour visualization", "runTourPlotter()") }}
     {% include "components/progressbar.html" %}
     
