@@ -44,7 +44,9 @@ class Activity(db.Model):
 			"datetime" : self.datetime,
 			"distance" : round(self.distance),
 			"duration" : self.duration,
-			"elevation" : round(self.elevation),
+			"elevation" : round(self.elevation), # total elevation gain
+			"minimum_elevation" : -1, # lowest point during activity
+			"maximum_elevation" : -1, # highest point during activity
 			"start_latitude" : self.start_latitude,
 			"start_longitude" : self.start_longitude,
 			# pre-formatted data:
@@ -52,8 +54,8 @@ class Activity(db.Model):
 			"athlete_name" : db.session.execute(db.select(Athlete).filter_by(id=self.athlete_id)).scalar_one_or_none().name,
 			"distance_km" : round(self.distance/1000,1),
 			"duration_hms" : "--",
-			"speed" : "--", # speed in km/h
-			"pace" : "--", # pace in min/km
+			"speed" : "--", # avg. speed in km/h
+			"pace" : "--", # avg. pace in min/km
 			"date" : "unknown",
 			"time" : "unknown",
 			"startpos_str" : f"({self.start_latitude:.3f},{self.start_longitude:.3f})"

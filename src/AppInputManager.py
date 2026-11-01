@@ -117,9 +117,9 @@ class AppInputManagerTourAnimation(AppInputManager):
 			tourgraphs.append(tgc.get_tourgraph())
 		
 		# plot animation:
-		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl, color_key=self.color_key)
+		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(tourgraphs)>1, add_label=len(tourgraphs)<2, add_profile=len(tourgraphs)<2)
 		self.add_task_child(tgp)
-		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix, add_legend=False)
+		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix)
 		self.finish_progress()
 
 class AppInputManagerActivityData(AppInputManager):

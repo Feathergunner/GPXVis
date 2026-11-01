@@ -38,14 +38,18 @@ class TourGraphPlotter(SubTask):
 			add_border:bool=True,
 			dpi:int=100,
 			color_key:str="singular",
-			add_profile:bool=False):
+			add_profile:bool=False,
+			add_label:bool=False,
+			add_legend:bool=False):
 		self.tourgraphs = tourgraphs
 
 		self.zoom = zoom
 		self.add_border = add_border
 		self.dpi = dpi
-		self.add_profile = add_profile
 		self.color_key = color_key
+		self.add_profile = add_profile
+		self.add_label = add_label
+		self.add_legend = add_legend
 		super().__init__("TourGraphPlotter", len(self.tourgraphs)+2)
 
 		# gps and maptile stats:
@@ -170,7 +174,6 @@ class TourGraphPlotter(SubTask):
 			fps:int=10,
 			synchronize_start:str="distance",
 			zoom_in:bool=False,
-			add_legend:bool=False,
 			img_dim:int=512,
 			filename:str=None) -> None:
 		'''
@@ -264,8 +267,64 @@ class TourGraphPlotter(SubTask):
 			lines.append(line)
 			markerpoints.append(point)
 
-		if add_legend:
-			self.axes.legend(handles=lines)
+		if self.add_legend:
+			self.axes.legend(handles=lines, loc="upper right")
+
+		if self.add_label:
+			label_textbox = self.axes.text(
+				0.03, 0.97,
+				"",
+				transform=self.axes.transAxes,
+				fontsize=720/self.dpi,
+				verticalalignment="top",
+				bbox=dict(
+					boxstyle="round,pad=0.3",
+					facecolor="white",
+					edgecolor="black",
+					alpha=0.7
+				)
+			)
+
+		if self.add_profile:
+			self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
+			# compute dimensions and limits of profile plots:
+			maximum_total_dist = max([tg.activity["distance"] for tg in self.tourgraphs])
+			self.axis_profile.set_xlim([-maximum_total_dist*0.01,maximum_total_dist*1.01])
+			min_elevation = 10000
+			max_elevation = -1
+			for tour_id in range(len(self.tourgraphs)):
+				min_elevation = min(min_elevation, min([split["elevation_avg"] for split in tourgraph_splits[tour_id]]))
+				max_elevation = max(max_elevation, max([split["elevation_avg"] for split in tourgraph_splits[tour_id]]))
+			delta_elevation = max_elevation-min_elevation
+			self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.1*delta_elevation])
+			min_speed = 1000
+			max_speed = -1
+			for tour_id in range(len(self.tourgraphs)):
+				min_speed = min(min_speed, min([split["speed"] for split in tourgraph_splits[tour_id]]))
+				max_speed = max(max_speed, max([split["speed"] for split in tourgraph_splits[tour_id]]))
+			delta_speed = max_speed-min_speed
+			speed_scale_factor = delta_elevation/delta_speed
+	
+			self.axis_profile.patch.set_alpha(1.0)
+			for spine in self.axis_profile.spines.values():
+				spine.set_visible(True)
+				spine.set_color("black")
+				spine.set_linewidth(LINEWIDTH*100/self.dpi)
+			self.axis_profile.set_xticks([])
+			self.axis_profile.set_yticks([])
+			self.axis_profile.text(
+				0.03, 0.95,
+				"elevation profile (red) & speed (blue)",
+				transform=self.axis_profile.transAxes,
+				fontsize=720/self.dpi,
+				verticalalignment="top"
+			)
+			# init line plots for elevation and speed profiles:
+			profile_xs = []
+			profile_ys_elevation = []
+			profile_ys_speed = []
+			line_elevation, = self.axis_profile.plot([], [], c="red", linewidth=LINEWIDTH*100/self.dpi)
+			line_speed, = self.axis_profile.plot([], [], c="blue", linewidth=LINEWIDTH*100/self.dpi)
 		
 		current_split_id = 0
 		reached_final_split = False
@@ -291,6 +350,21 @@ class TourGraphPlotter(SubTask):
 						tour_ys[tour_id].append(y)
 						lines[tour_id].set_data(tour_xs[tour_id], tour_ys[tour_id])
 						markerpoints[tour_id].set_data([tour_xs[tour_id][-1]], [tour_ys[tour_id][-1]])
+
+						if self.add_label:
+							# update text info (time, distance, speed):
+							label_textbox.set_text(format_time(split["time_total"])+" min:sek\n"+f"{split["dist_total"]/1000:03.1f} km\n"+f"{split["speed"]*3600/1000:.1f} km/h")
+
+						if self.add_profile:
+							# update elevation and speed profile plots:
+							if len(profile_xs) == 0:
+								profile_xs.append(split["distance"])
+							else:
+								profile_xs.append(profile_xs[-1]+split["distance"])
+							profile_ys_elevation.append(split["elevation_avg"])
+							profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
+							line_elevation.set_data(profile_xs, profile_ys_elevation)
+							line_speed.set_data(profile_xs, profile_ys_speed)
 
 						if zoom_in and tour_id == 0:
 							# zoom in to map section around current position:
@@ -393,7 +467,6 @@ class TourGraphPlotter(SubTask):
 			fps:int=10,
 			synchronize_start:str="no",
 			zoom_in:bool=False,
-			add_legend:bool=False,
 			img_dim:int=512,
 			result_filename:str=None):
 
@@ -409,4 +482,4 @@ class TourGraphPlotter(SubTask):
 				result_filename = result_filename[:-4]
 
 		self.progress += 1
-		self._plot_animated_tours_to_mp4(split_type=split_type, split_size=split_size, fps=fps, synchronize_start=synchronize_start, zoom_in=zoom_in, add_legend=add_legend, filename=result_filename)
+		self._plot_animated_tours_to_mp4(split_type=split_type, split_size=split_size, fps=fps, synchronize_start=synchronize_start, zoom_in=zoom_in, filename=result_filename)
