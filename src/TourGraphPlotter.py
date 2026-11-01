@@ -20,8 +20,6 @@ from src.misc_geometry import get_latlon_vector_length
 from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME, LINECOLORS
 
 LINEWIDTH = 1
-VALID_COLOR_AXIS_KEYS = ["distance", "time", "speed", "elevation_change", "elevation_avg"]
-
 
 def fig2img(fig):
 	"""
@@ -201,6 +199,9 @@ class TourGraphPlotter(SubTask):
 		img_dim:
 			specifies the image dimensions of the frames. Currently only used with zoom_in
 		'''
+
+		if split_type not in ["distance", "time"]:
+			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
 
 		ensure_dir_exists(os.path.join("output","animations"))
 		if filename is not None:
@@ -385,219 +386,6 @@ class TourGraphPlotter(SubTask):
 			current_tg_reference += 1
 
 		return start_edge_ids
-
-	def _plot_tourgraph(self,
-			tg:TG.TourGraph,
-			split_type:str="distance",
-			split_size:int=100,
-			color_axis_key:str=None,
-			create_animation:bool=False,
-			animation_fullmap:bool=False,
-			filename:str=None) -> None:
-		'''
-		Plot a tourgraph with splits defined by split_type with size split_size and colored corresponding to color_axis_key
-
-		create_animation:
-			if True, saves every frame of an animated tour
-		animation_fullmap:
-			if True, the frames contain the full map.
-			otherwise, the animation frames show a zoomed-in fraction around the current position.
-		'''
-
-		# list of PIL images that make up the animation:
-		animation_frames = []
-
-		if split_type not in ["distance", "time"]:
-			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
-		if color_axis_key is not None and color_axis_key not in VALID_COLOR_AXIS_KEYS:
-			raise ValueError("color_axis_key has to be \'None\' or one of: "+str(VALID_COLOR_AXIS_KEYS)+"!")	
-		if create_animation:
-			ensure_dir_exists(os.path.join("output","maps","animate_tmp"))
-		if filename is None:
-			filename = "tmp"
-
-		# construct splits:
-		splits = []
-		if split_type == "distance":
-			splits = tg.get_split_segments(splitdistance=split_size)
-		elif split_type == "time":
-			splits = tg.get_split_segments(splittime=split_size)
-
-		# get range of colors to construct colormap
-		if color_axis_key is not None:
-			# normalize color-values:
-			min_colorval = min(split[color_axis_key] for split in splits)
-			max_colorval = max(split[color_axis_key] for split in splits)
-			# compute color values:
-			splitcolorvals = [(split[color_axis_key]-min_colorval)/(max_colorval-min_colorval+1) for split in splits]
-
-		# plot:
-		dim_cropped = 512
-		figure_size_inches = self.figure.get_size_inches()
-
-		# init plot:
-		if color_axis_key is not None:
-			color = mpl.colormaps["turbo"](splitcolorvals[split_id])
-		else:
-			color = "red"
-		line, = self.axes.plot([], [], c=color, linewidth=LINEWIDTH*100/self.dpi)
-		point, = self.axes.plot([], [], c=color, marker='o', markersize=400)
-		xs = []
-		ys = []
-
-		if create_animation:
-			if not animation_fullmap:
-				# resize figure to cropped:
-				self.figure.set_size_inches(dim_cropped/self.figure.dpi, dim_cropped/self.figure.dpi)
-			# initialize text info box, positioned relative to the image
-			textbox = self.axes.text(
-				0.03, 0.97,
-				"",
-				transform=self.axes.transAxes,
-				fontsize=720,
-				verticalalignment="top",
-				bbox=dict(
-					boxstyle="round,pad=0.3",
-					facecolor="white",
-					edgecolor="black",
-					alpha=0.7
-				)
-			)
-
-		# add height profile:
-		if create_animation or self.add_profile:
-			self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
-			# compute dimensions and limits of profile plots:
-			total_dist = sum([split["distance"] for split in splits])
-			self.axis_profile.set_xlim([-total_dist*0.01,total_dist*1.01])
-			min_elevation = min([split["elevation_avg"] for split in splits])
-			max_elevation = max([split["elevation_avg"] for split in splits])
-			delta_elevation = max_elevation-min_elevation
-			self.axis_profile.set_ylim([min_elevation-0.05*delta_elevation, max_elevation+0.1*delta_elevation])
-			min_speed = min([split["speed"] for split in splits])
-			max_speed = max([split["speed"] for split in splits])
-			delta_speed = max_speed-min_speed
-			speed_scale_factor = delta_elevation/delta_speed
-	
-			self.axis_profile.patch.set_alpha(1.0)
-			for spine in self.axis_profile.spines.values():
-				spine.set_visible(True)
-				spine.set_color("black")
-				spine.set_linewidth(LINEWIDTH*100/self.dpi)
-			self.axis_profile.set_xticks([])
-			self.axis_profile.set_yticks([])
-			self.axis_profile.text(
-				0.03, 0.95,
-				"elevation profile (red) & speed (blue)",
-				transform=self.axis_profile.transAxes,
-				fontsize=720,
-				verticalalignment="top"
-			)
-			# init line plots for elevation and speed profiles:
-			profile_xs = []
-			profile_ys_elevation = []
-			profile_ys_speed = []
-			line_elevation, = self.axis_profile.plot([], [], c="red", linewidth=LINEWIDTH*100/self.dpi)
-			line_speed, = self.axis_profile.plot([], [], c="blue", linewidth=LINEWIDTH*100/self.dpi)
-
-		for split_id in range(len(splits)):
-			# add next gps-segment to plot:
-			split = splits[split_id]
-			for edge in split["edge_ids"]:
-				(x,y) = self._get_node_xy_coords(tg, tg.edges[edge].id_begin)
-				xs.append(x)
-				ys.append(y)
-			(x,y) = self._get_node_xy_coords(tg, tg.edges[split["edge_ids"][-1]].id_end)
-			xs.append(x)
-			ys.append(y)
-			line.set_data(xs, ys)
-			point.set_data([xs[-1]], [ys[-1]])
-
-			if create_animation or self.add_profile:
-				# update elevation and speed profile plots:
-				if len(profile_xs) == 0:
-					profile_xs.append(split["distance"])
-				else:
-					profile_xs.append(profile_xs[-1]+split["distance"])
-				profile_ys_elevation.append(split["elevation_avg"])
-				profile_ys_speed.append((split["speed"]-min_speed)*speed_scale_factor+min_elevation)
-				line_elevation.set_data(profile_xs, profile_ys_elevation)
-				line_speed.set_data(profile_xs, profile_ys_speed)
-
-			if create_animation:
-				if not animation_fullmap:
-					# crop image to current position:
-					x_min = int(xs[-1] - dim_cropped/2)
-					x_max = int(xs[-1] + dim_cropped/2)
-					y_min = int(ys[-1] + dim_cropped/2)
-					y_max = int(ys[-1] - dim_cropped/2)
-					self.axes.set_xlim(x_min, x_max)
-					self.axes.set_ylim(y_min, y_max)
-
-
-				# update text info (time, distance, speed):
-				textbox.set_text(format_time(split["time_total"])+" min:sek\n"+f"{split["dist_total"]/1000:03.1f} km\n"+f"{split["speed"]*3600/1000:.1f} km/h")
-
-				# convert pyplot plot to PIL image and store in list of frames:
-				self.axes.set_axis_off()
-				animation_frames.append(fig2img(plt.gcf()))
-
-		self.axes.set_axis_off()
-		if create_animation:
-			# Save the first image as a GIF file
-			animation_frames[0].save(
-				os.path.join("output", "maps", filename+"_animated.gif"),
-				save_all=True,
-				append_images=animation_frames[1:], # append rest of the images
-				duration=100, # in milliseconds
-				loop=0)
-
-	def plot(self,
-			split_type:str="distance",
-			split_size:int="100",
-			color_axis_key:str=None,
-			create_animation:bool=False,
-			animation_fullmap:bool=False,
-			result_filename:str=None) -> str:
-
-		self._construct_map(follow_path_only = create_animation and not animation_fullmap)
-		# ensure output directory exists:
-		ensure_dir_exists(os.path.join("output","maps"))
-
-		if result_filename is not None:
-			if color_axis_key is not None:
-				filename_suffix = "_"+color_axis_key
-			else:
-				filename_suffix = ""
-			# ensure filename ends with ".png"
-			if not result_filename.endswith(".png"):
-				result_filename += filename_suffix
-				result_filename_full = result_filename.split(".")[0]+filename_suffix+".png"
-			else:
-				result_filename = result_filename.split(".")[0]+filename_suffix
-				result_filename_full = result_filename+".png"
-		
-		self.progress += 1
-		i = 0
-		for tg in self.tourgraphs:
-			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
-			self._plot_tourgraph(tg, split_type=split_type, split_size=split_size, color_axis_key=color_axis_key, create_animation=create_animation, animation_fullmap=animation_fullmap, filename=result_filename)
-			i += 1
-			self.progress += 1
-
-		outputpath = None
-		if not create_animation:
-			if result_filename is None:
-				plt.show()
-			else:
-				# save plot
-				self.current_computation_step = "Save file"
-				outputpath = os.path.join("output","maps",result_filename)
-				plt.savefig(outputpath, bbox_inches='tight', pad_inches=0)
-				plt.close('all')
-
-		self.finish_progress()
-		return outputpath
 
 	def create_tour_animation(self,
 			split_type:str="distance",
