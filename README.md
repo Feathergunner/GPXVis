@@ -52,10 +52,21 @@ python 3.10-ish with packages:
 and ffmpeg (to generate the animations).
 
 ## Future Features
-- [ ] Labels for maps and animations.
-- [ ] Improved plots (improved design, meaningful colors, support more parameters).
+- [ ] Improve maps:
+  - [ ] Make map margin (around plotted route) equal in all directions.
+  - [ ] Labels for maps.
+- [ ] Improve plots:
+  - [ ]  Improve design.
+  - [ ]  Support more attributes.
+  - [ ]  Lineplot/barplot/scatterplot depending on data.
+  - [x]  Meaningful colors.
+- [ ] Improve and unify datastructures.
+- [ ] Improve RouteGraphConstructor.
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
+- [ ] Database version tracking, to allow future database extensions.
+- [ ] Build a package with a straightforward-to-use installer.
+- [x] Labels for animations.
 - [x] More options for creating animations (multiple activities at once, zoomed-in map).
 - [x] QOL features: default parameters.
 - [x] Improved progress bar (some processes need to provide more informations and stats).
