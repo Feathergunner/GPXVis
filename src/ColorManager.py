@@ -1,7 +1,9 @@
 #!usr/bin/python
 # -*- coding: utf-8 -*-import string
 
+import numpy as np
 import matplotlib as mpl
+import datetime
 
 from org import LINECOLORS
 
@@ -29,6 +31,8 @@ class ColorManager():
 		self.min_value = None
 		self.max_value = None
 		self.colormap_name = "turbo"
+		self.continuous_ticks = []
+		self.continuous_ticks_labels = []
 
 		self._setup(activities)
 
@@ -76,6 +80,9 @@ class ColorManager():
 					self.max_value = activity["datetime"].date()
 				elif activity["datetime"].date() > self.max_value:
 					self.max_value = activity["datetime"].date()
+			tick_stepsize = (self.max_value.toordinal()-self.min_value.toordinal())/10
+			self.continuous_ticks = np.arange(self.min_value.toordinal(), self.max_value.toordinal()+tick_stepsize, tick_stepsize)
+			self.continuous_ticks_labels = [datetime.date.fromordinal(int(t)) for t in self.continuous_ticks]
 		else:
 			return
 
@@ -88,6 +95,12 @@ class ColorManager():
 		# use colormap to get a color
 		color = mpl.colormaps[self.colormap_name](relative_value)
 		return color
+
+	def get_color_legend_data(self):
+		if self.color_key in COLOR_KEYS_CONTINUOUS:
+			return (self.continuous_ticks, self.continuous_ticks_labels)
+		else:
+			return ([],[])
 
 	def get_color(self, datapoint):
 		if self.color_key == "athlete":

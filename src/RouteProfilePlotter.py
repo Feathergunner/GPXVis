@@ -228,6 +228,13 @@ class RouteProfilePlotter(SubTask):
 	def __init__(self, activities:list, verbose=False):
 		self.activities = activities
 		self.verbose = False
+		self.figure = None
+		self.axes = None
+
+		self.width_inches = 16
+		self.height_inches = 9
+		self.dpi = 100
+
 		super().__init__("RouteProfilePlotter", 2+len(self.activities)//10)
 		self.progress += 1
 
@@ -311,6 +318,7 @@ class RouteProfilePlotter(SubTask):
 		plotdata = []
 		metadata = []
 
+		self.figure, self.axes = plt.subplots(figsize=(self.width_inches, self.height_inches), dpi=self.dpi)
 		colormanager = CM.ColorManager(color_axis_key, self.activities)
 
 		for i in range(len(self.data)):
@@ -328,7 +336,7 @@ class RouteProfilePlotter(SubTask):
 
 		i = 0
 		for data in plotdata:
-			plt.plot(data["xs"], data["ys"], c=data["color"])
+			self.axes.plot(data["xs"], data["ys"], c=data["color"])
 			i += 1
 			if i%20 == 0:
 				self.progress += 1
@@ -358,13 +366,25 @@ class RouteProfilePlotter(SubTask):
 		else:
 			ytickrange = [min_y]
 		yticklabels = [format_data(y_axis_key, y) for y in ytickrange]
-		plt.xlim(min_x-(x_diff/20), max_x+(x_diff/20))
-		plt.ylim(min_y-(y_diff/20), max_y+(y_diff/20))
-		plt.xticks(xtickrange, xticklabels, rotation=20)
-		plt.yticks(ytickrange, yticklabels)
-		plt.xlabel(x_axis_key + " ("+KEY_UNITS[x_axis_key]+")")
-		plt.ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
+
+		self.axes.set_xlim(min_x-(x_diff/20), max_x+(x_diff/20))
+		self.axes.set_ylim(min_y-(y_diff/20), max_y+(y_diff/20))
+		self.axes.set_xticks(xtickrange, xticklabels, rotation=20)
+		self.axes.set_yticks(ytickrange, yticklabels)
+		self.axes.set_xlabel(x_axis_key + " ("+KEY_UNITS[x_axis_key]+")")
+		self.axes.set_ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
 		
+		# colorbar:
+		if color_axis_key in ["date"]:
+			cmmap_norm = mpl.colors.Normalize(vmin=colormanager.min_value.toordinal(), vmax=colormanager.max_value.toordinal())
+			cmap = mpl.colormaps[colormanager.colormap_name]
+			sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
+			cbar = plt.colorbar(sm, ax=self.axes, orientation='horizontal', pad=0.1, aspect=30)
+			color_ticks, color_tick_labels = colormanager.get_color_legend_data()
+			cbar.set_label(color_axis_key)
+			cbar.set_ticks(color_ticks)
+			cbar.set_ticklabels(color_tick_labels)
+
 		# save plot
 		outputfolder = os.path.join("output", "activities")
 		ensure_dir_exists(outputfolder)
@@ -374,7 +394,7 @@ class RouteProfilePlotter(SubTask):
 			result_filename = "activities_"
 		result_filename += x_axis_key+"_"+y_axis_key
 		outputpath = os.path.join(outputfolder, ensure_unique_filename(outputfolder, result_filename)+".png")
-		plt.savefig(outputpath, bbox_inches='tight', pad_inches=0, dpi=300)
+		self.figure.savefig(outputpath, bbox_inches='tight', pad_inches=0.2, dpi=300)
 		plt.close('all')
 		self.finish_progress()
 		return outputpath
