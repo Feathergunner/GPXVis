@@ -212,9 +212,7 @@ class TourGraphPlotter(SubTask):
 			result_filename = self.filename
 		else:
 			result_filename = filename
-		print (result_filename)
 		outputpath = os.path.join(outputfolder, ensure_unique_filename(outputfolder, result_filename, "mp4")+".mp4")
-		print (outputpath)
 
 		if zoom_in:
 			# set figure size
