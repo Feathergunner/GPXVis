@@ -1,9 +1,12 @@
 :root {
 --bg: #202020;
 --panel: #303030;
+--panel_lowaccent: #111111;
+--panel_accent: #4fc3f7;
+--panel_warn: #ffc040;
 --border: #404040;
 --text: #e0e0e0;
---accent: #4fc3f7;
+--text_warn: #ff0000;
 }
 
 /* Navigation */
@@ -11,7 +14,7 @@
     display: flex;
     gap: 20px;
     padding: 15px 25px;
-    background-color: #333;
+    background-color: var(--panel);
 }
 
 .navbar a {
@@ -62,7 +65,7 @@ flex: 1;
 }
 
 button {
-background: var(--accent);
+background: var(--panel_accent);
 color: black;
 border: none;
 border-radius: 6px;
@@ -72,9 +75,9 @@ cursor: pointer;
 
 input,
 select {
-background: #333;
+background: var(--panel);
 color: white;
-border: 1px solid #555;
+border: 1px solid var(--border);
 border-radius: 6px;
 padding: 8px;
 }
@@ -87,6 +90,9 @@ h2 {
 	margin-left: 20px;
 }
 
+.bg_warning {
+    background-color: var(--panel_warn)
+}
 
 #map {
 	height: 500px;
@@ -99,19 +105,19 @@ h2 {
 }
 
 table {
-    background-color: #222222;
+    background-color: var(--bg);
     border-collapse: collapse;
     width: 100%;
 }
 
 th, td {
-    border: 1px solid #c0c0c0;
+    border: 1px solid var(--panel);
     padding: 8px 12px;
     text-align: right;
 }
 
 thead {
-    background-color: #111111;
+    background-color: var(--panel_lowaccent);
 }
 
 .checkbox-column {
