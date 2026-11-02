@@ -5,18 +5,7 @@ import numpy as np
 import matplotlib as mpl
 import datetime
 
-from org import LINECOLORS
-
-COLOR_KEYS_CATEGORICAL = [
-	"singular",			# everything the same color
-	"athlete",			# color by athlete
-	"activitytype",		# color by activity type
-	"activity"			# each activity unique color
-]
-COLOR_KEYS_CONTINUOUS = [
-	#"elevation",		# not yet implemented
-	"date"				# color by date
-]
+from src.org_plotting import LINECOLORS, COLOR_KEYS_CATEGORICAL, COLOR_KEYS_CONTINUOUS
 
 COLORS_CATEGORICAL = LINECOLORS
 

@@ -13,7 +13,8 @@ from src.SubTask import SubTask
 from src import ColorManager as CM
 
 from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str, ensure_dir_exists, ensure_unique_filename
-from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON, LINECOLORS
+from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON
+from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL
 
 KEY_UNITS = {
 	"distance" : "km",
@@ -314,33 +315,7 @@ class RouteProfilePlotter(SubTask):
 			if i%20 == 0:
 				self.progress += 1
 
-	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str=""):
-		plotdata = []
-		metadata = []
-
-		self.figure, self.axes = plt.subplots(figsize=(self.width_inches, self.height_inches), dpi=self.dpi)
-		colormanager = CM.ColorManager(color_axis_key, self.activities)
-
-		for i in range(len(self.data)):
-			activity = self.data[i]
-			data = {}
-			data["xs"] = []
-			data["ys"] = []
-			data["color"] = []
-			data["meta"] = self.activities[i]
-			for datapoint in activity:
-				data["xs"].append(datapoint.get_data_by_key(x_axis_key))
-				data["ys"].append(datapoint.get_data_by_key(y_axis_key))
-			data["color"] = colormanager.get_color(self.activities[i])
-			plotdata.append(data)
-
-		i = 0
-		for data in plotdata:
-			self.axes.plot(data["xs"], data["ys"], c=data["color"])
-			i += 1
-			if i%20 == 0:
-				self.progress += 1
-
+	def _setup_plot_axes(self, plotdata, x_axis_key:str, y_axis_key:str):
 		min_x = min(min(data["xs"]) for data in plotdata)
 		if KEY_RANGE_MIN[x_axis_key] is not None:
 			min_x = max(min_x, KEY_RANGE_MIN[x_axis_key])
@@ -373,17 +348,62 @@ class RouteProfilePlotter(SubTask):
 		self.axes.set_yticks(ytickrange, yticklabels)
 		self.axes.set_xlabel(x_axis_key + " ("+KEY_UNITS[x_axis_key]+")")
 		self.axes.set_ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
+
+	def _setup_colorbar(self, colormanager):
+		cmmap_norm = mpl.colors.Normalize(vmin=colormanager.min_value.toordinal(), vmax=colormanager.max_value.toordinal())
+		cmap = mpl.colormaps[colormanager.colormap_name]
+		sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
+		cbar = plt.colorbar(sm, ax=self.axes, orientation='horizontal', pad=0.1, aspect=30)
+		color_ticks, color_tick_labels = colormanager.get_color_legend_data()
+		cbar.set_label(color_axis_key)
+		cbar.set_ticks(color_ticks)
+		cbar.set_ticklabels(color_tick_labels)
+
+	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str=""):
+		plotdata = []
+		metadata = []
+
+		print (x_axis_key, y_axis_key)
+
+		plottype = "lineplot"
+		if x_axis_key in DATA_KEYS_CATEGORICAL or y_axis_key in DATA_KEYS_CATEGORICAL:
+			plottype = "scatterplot"
+
+		self.figure, self.axes = plt.subplots(figsize=(self.width_inches, self.height_inches), dpi=self.dpi)
+		colormanager = CM.ColorManager(color_axis_key, self.activities)
+
+		for i in range(len(self.data)):
+			activity = self.data[i]
+			data = {}
+			data["xs"] = []
+			data["ys"] = []
+			data["color"] = []
+			data["meta"] = self.activities[i]
+			if plottype == "lineplot":
+				for datapoint in activity:
+					data["xs"].append(datapoint.get_data_by_key(x_axis_key))
+					data["ys"].append(datapoint.get_data_by_key(y_axis_key))
+			elif plottype == "scatterplot":
+				data["xs"].append(max([datapoint.get_data_by_key(x_axis_key) for datapoint in activity]))
+				data["ys"].append(max([datapoint.get_data_by_key(y_axis_key) for datapoint in activity]))
+			data["color"] = colormanager.get_color(self.activities[i])
+			plotdata.append(data)
+
+		i = 0
+		for data in plotdata:
+			if plottype == "lineplot":
+				self.axes.plot(data["xs"], data["ys"], c=data["color"])
+			elif plottype == "scatterplot":
+				self.axes.scatter(data["xs"], data["ys"], c=data["color"])
+			i += 1
+			if i%20 == 0:
+				self.progress += 1
+
+		self._setup_plot_axes(plotdata, x_axis_key, y_axis_key)
 		
 		# colorbar:
 		if color_axis_key in ["date"]:
-			cmmap_norm = mpl.colors.Normalize(vmin=colormanager.min_value.toordinal(), vmax=colormanager.max_value.toordinal())
-			cmap = mpl.colormaps[colormanager.colormap_name]
-			sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
-			cbar = plt.colorbar(sm, ax=self.axes, orientation='horizontal', pad=0.1, aspect=30)
-			color_ticks, color_tick_labels = colormanager.get_color_legend_data()
-			cbar.set_label(color_axis_key)
-			cbar.set_ticks(color_ticks)
-			cbar.set_ticklabels(color_tick_labels)
+			self._setup_plot_axes(colormanager)
 
 		# save plot
 		outputfolder = os.path.join("output", "activities")
@@ -398,7 +418,6 @@ class RouteProfilePlotter(SubTask):
 		plt.close('all')
 		self.finish_progress()
 		return outputpath
-
 
 if __name__ == '__main__':
 	pass

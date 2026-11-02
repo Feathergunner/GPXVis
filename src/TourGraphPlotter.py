@@ -17,9 +17,10 @@ from src.SubTask import SubTask
 
 from src.misc import ensure_dir_exists, ensure_unique_filename, format_time, format_time_hours
 from src.misc_geometry import get_latlon_vector_length
-from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME, LINECOLORS
+from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
+from src.org_plotting import LINECOLORS, BASE_LINEWIDTH
 
-LINEWIDTH = 1
+
 
 def fig2img(fig):
 	"""
@@ -71,6 +72,9 @@ class TourGraphPlotter(SubTask):
 		self.tile_lon_range = None
 
 		self.filename = "tmp"
+
+	def _get_linewidth(self):
+		return 100/self.dpi
 
 	def construct_filename(self, basename:str, suffix:str="") -> str:
 		filename = "Tour-"+basename+"_"+str(self.zoom)
@@ -264,7 +268,7 @@ class TourGraphPlotter(SubTask):
 		tour_ys = [[] for _ in self.tourgraphs]
 		for i in range(len(self.tourgraphs)):
 			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
-			line, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), linewidth=LINEWIDTH*100/self.dpi, zorder=i, label=self.tourgraphs[i].basename)
+			line, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), linewidth=self._get_linewidth(), zorder=i, label=self.tourgraphs[i].basename)
 			point, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), marker='o', markersize=400/self.dpi, zorder=20+i)
 			lines.append(line)
 			markerpoints.append(point)
@@ -311,7 +315,7 @@ class TourGraphPlotter(SubTask):
 			for spine in self.axis_profile.spines.values():
 				spine.set_visible(True)
 				spine.set_color("black")
-				spine.set_linewidth(LINEWIDTH*100/self.dpi)
+				spine.set_linewidth(self._get_linewidth())
 			self.axis_profile.set_xticks([])
 			self.axis_profile.set_yticks([])
 			self.axis_profile.text(
@@ -325,8 +329,8 @@ class TourGraphPlotter(SubTask):
 			profile_xs = []
 			profile_ys_elevation = []
 			profile_ys_speed = []
-			line_elevation, = self.axis_profile.plot([], [], c="red", linewidth=LINEWIDTH*100/self.dpi)
-			line_speed, = self.axis_profile.plot([], [], c="blue", linewidth=LINEWIDTH*100/self.dpi)
+			line_elevation, = self.axis_profile.plot([], [], c="red", linewidth=self._get_linewidth())
+			line_speed, = self.axis_profile.plot([], [], c="blue", linewidth=self._get_linewidth())
 		
 		current_split_id = 0
 		reached_final_split = False
