@@ -15,7 +15,7 @@ from src import TourGraph as TG
 from src import ColorManager as CM
 from src.SubTask import SubTask
 
-from src.misc import ensure_dir_exists, format_time, format_time_hours
+from src.misc import ensure_dir_exists, ensure_unique_filename, format_time, format_time_hours
 from src.misc_geometry import get_latlon_vector_length
 from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME, LINECOLORS
 
@@ -206,11 +206,15 @@ class TourGraphPlotter(SubTask):
 		if split_type not in ["distance", "time"]:
 			raise ValueError("split_type has to be one of \"distance\", \"time\"!")
 
-		ensure_dir_exists(os.path.join("output","animations"))
-		if filename is not None:
-			outputpath = os.path.join("output","animations",filename+".mp4")
+		outputfolder = os.path.join("output","animations")
+		ensure_dir_exists(outputfolder)
+		if filename is None:
+			result_filename = self.filename
 		else:
-			outputpath = os.path.join("output","animations",self.filename+".mp4")
+			result_filename = filename
+		print (result_filename)
+		outputpath = os.path.join(outputfolder, ensure_unique_filename(outputfolder, result_filename, "mp4")+".mp4")
+		print (outputpath)
 
 		if zoom_in:
 			# set figure size

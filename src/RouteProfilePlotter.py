@@ -12,7 +12,7 @@ import gpxpy
 from src.SubTask import SubTask
 from src import ColorManager as CM
 
-from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str, ensure_dir_exists
+from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str, ensure_dir_exists, ensure_unique_filename
 from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON, LINECOLORS
 
 KEY_UNITS = {
@@ -366,17 +366,19 @@ class RouteProfilePlotter(SubTask):
 		plt.ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
 		
 		# save plot
-		ensure_dir_exists(os.path.join("output", "activities"))
+		outputfolder = os.path.join("output", "activities")
+		ensure_dir_exists(outputfolder)
 		if basename is not None and len(basename) > 0:
 			result_filename = basename+"_"
 		else:
 			result_filename = "activities_"
-		result_filename += x_axis_key+"_"+y_axis_key+".png"
-		outputpath = os.path.join("output","activities",result_filename)
+		result_filename += x_axis_key+"_"+y_axis_key
+		outputpath = os.path.join(outputfolder, ensure_unique_filename(outputfolder, result_filename)+".png")
 		plt.savefig(outputpath, bbox_inches='tight', pad_inches=0, dpi=300)
 		plt.close('all')
 		self.finish_progress()
 		return outputpath
+
 
 if __name__ == '__main__':
 	pass

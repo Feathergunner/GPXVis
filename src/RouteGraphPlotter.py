@@ -9,7 +9,7 @@ from src import OSMMapDownloader as osmmd
 from src import RouteGraph as RG
 from src.SubTask import SubTask
 
-from src.misc import ensure_dir_exists
+from src.misc import ensure_dir_exists, ensure_unique_filename
 from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
 
 LINEWIDTH = 1
@@ -165,13 +165,13 @@ class RouteGraphPlotter(SubTask):
 			plt.show()
 			outputpath = None
 		else:
-			self.current_computation_step = "Save file"
-			# ensure filename ends with ".png"
-			if not result_filename.endswith(".png"):
-				result_filename = result_filename.split(".")[0]+".png"
 			# save plot
-			ensure_dir_exists(os.path.join("output","maps"))
-			outputpath = os.path.join("output","maps",result_filename)
+			self.current_computation_step = "Save file"
+			outputfolder = os.path.join("output","maps")
+			ensure_dir_exists(outputfolder)
+			if result_filename.endswith(".png"):
+				result_filename = result_filename.split(".")[0]
+			outputpath = os.path.join(outputfolder, ensure_unique_filename(outputfolder, result_filename)+".png")
 			plt.savefig(outputpath, bbox_inches='tight', pad_inches=0, dpi=self.dpi)
 			print ("Saved map image with routes in: "+outputpath)
 			plt.close('all')

@@ -43,6 +43,15 @@ def ensure_dir_exists(directory:str) -> None:
 	if not os.path.exists(directory):
 		os.makedirs(directory)
 
+def ensure_unique_filename(folder, filename, filetype="png") -> str:
+	ensure_dir_exists(folder)
+	counter = 0
+	suffix = ""
+	while os.path.isfile(os.path.join(folder, filename+suffix+"."+filetype)):
+		counter += 1
+		suffix = "_"+str(counter)
+	return filename+suffix
+
 # Helper function to transform pace time from "m:ss"-format to float
 def pace_to_float(pace_str:str) -> float:
     try:
