@@ -1,0 +1,19 @@
+{% macro select_plotaxis_dimension(axisname, axisdim_cont, axisdim_cat) %}
+<div id="div_axis_{{ axisname }}" class="panel floating">
+	<h3>{{ axisname }}-Axis</h3>
+	<form id="form_select_axis_{{ axisname }}">
+		Pointwise data:<br>
+		{% for dim in axisdim_cont %}
+			<input type="radio" id="radio_axis_{{ axisname }}" name="axis_{{ axisname }}_type" value="{{ dim.value }}">
+			<label>{{ dim.label}}</label><br>
+		{% endfor %}
+		
+		Activity statistics:<br>
+		{% for dim in axisdim_cat %}
+			<input type="radio" id="radio_axis_{{ axisname }}" name="axis_{{ axisname }}_type" value="{{ dim.value }}">
+			<label>{{ dim.label}}</label><br>
+		{% endfor %}
+	</form>
+</div>
+
+{% endmacro %}

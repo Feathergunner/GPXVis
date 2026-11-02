@@ -1,83 +1,10 @@
+{% from "components/select_plotaxis_dimension.html" import select_plotaxis_dimension %}
+
 <div class="cleanpanel">
 	<h2>Plot Specification</h2>
 	<div class="divrow">
-		<div id="div_axis_x" class="panel floating">
-			<h3>x-Axis</h3>
-			<form id="form_select_axis_x">
-			Pointwise data:<br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="distance">
-			<label>Distance</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="time">
-			<label>Time</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="height">
-			<label>Height</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="height relative">
-			<label>Relative Height</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="elevation gain">
-			<label>Elevation Gain</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="slope">
-			<label>Slope</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="pace">
-			<label>Pace</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="speed">
-			<label>Speed</label><br>
-			Activity statistics:<br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="pace average">
-			<label>Average Pace</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="speed average">
-			<label>Average Speed</label><br>
-			Activitywise data:<br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="date">
-			<label>Date</label><br>
-			<!--
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="total distance">
-			<label>Total Distance</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="duration">
-			<label>Total Duration</label><br>
-			<input type="radio" id="radio_axis_x" name="axis_x_type" value="total elevation">
-			<label>Total Elevation</label><br>
-			-->
-			</form>
-		</div>
-
-		<div id="div_axis_y" class="panel floating">
-			<h3>y-Axis</h3>
-			<form id="form_select_axis_y">
-			Pointwise data:<br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="distance">
-			<label>Distance</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="time">
-			<label>Time</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="height">
-			<label>Height</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="height relative">
-			<label>Relative Height</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="elevation gain">
-			<label>Elevation Gain</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="slope">
-			<label>Slope</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="pace">
-			<label>Pace</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="speed">
-			<label>Speed</label><br>
-			Activity statistics:<br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="pace average">
-			<label>Average Pace</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="speed average">
-			<label>Average Speed</label><br>
-			Activitywise data:<br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="date">
-			<label>Date</label><br>
-			<!--
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="total distance">
-			<label>Total Distance</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="duration">
-			<label>Total Duration</label><br>
-			<input type="radio" id="radio_axis_y" name="axis_y_type" value="total elevation">
-			<label>Total Elevation</label><br>
-			-->
-			</form>
-		</div>
+		{{ select_plotaxis_dimension("x", axisdim_cont, axisdim_cat) }}
+		{{ select_plotaxis_dimension("y", axisdim_cont, axisdim_cat) }}
 		{% include "components/select_color_key.html" %}
 	</div>
-	</div>
+</div>

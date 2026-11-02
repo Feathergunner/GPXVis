@@ -19,12 +19,14 @@ from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL
 KEY_UNITS = {
 	"distance" : "km",
 	"time" : "h:min",
-	"height" : "m",
-	"height relative" : "m",
+	"elevation" : "m",
+	"elevation relative" : "m",
 	"elevation gain" : "m",
 	"slope" : "%",
 	"pace" : "min/km",
+	"avg pace" : "min/km",
 	"speed" : "km/h",
+	"avg speed" : "km/h",
 	"date" : "YYYY-MM-DD",
 	"total distance" : "km",
 	"total duration" : "h:min:sec",
@@ -34,12 +36,14 @@ KEY_UNITS = {
 KEY_RANGE_MIN = {
 	"distance" : None,
 	"time" : None,
-	"height" : None,
-	"height relative" : None,
+	"elevation" : None,
+	"elevation relative" : None,
 	"elevation gain" : 0,
 	"slope" : -0.5,
 	"pace" : 2,
+	"avg pace" : 2,
 	"speed" : 4,
+	"avg speed" : 4,
 	"date" : None,
 	"total distance" : 0,
 	"total duration" : 0,
@@ -49,12 +53,14 @@ KEY_RANGE_MIN = {
 KEY_RANGE_MAX = {
 	"distance" : None,
 	"time" : None,
-	"height" : None,
-	"height relative" : None,
+	"elevation" : None,
+	"elevation relative" : None,
 	"elevation gain" : None,
 	"slope" : 0.5,
 	"pace" : 15,
+	"avg pace" : 15,
 	"speed" : 30,
+	"avg speed" : 30,
 	"date" : None,
 	"total distance" : None,
 	"total duration" : None,
@@ -67,9 +73,9 @@ def format_data(key, value):
 		return f"{dist_km:03.1f}"
 	elif key == "time":
 		return format_time_hours(value)
-	elif key == "height":
+	elif key == "elevation":
 		return f"{value:.0f}"
-	elif key == "height relative":
+	elif key == "elevation relative":
 		return f"{value:.0f}"
 	elif key == "elevation gain":
 		return f"{value:.0f}"
@@ -88,7 +94,7 @@ def format_data(key, value):
 	elif key == "total duration":
 		return format_time_hours(value)
 	elif key == "total elevation":
-		return f"{value:.0f}"
+		return f"{value:.0f}"	
 
 class Datapoint:
 	def __init__(self, gpx, previous_datapoint=None, stats=None):
@@ -146,9 +152,9 @@ class Datapoint:
 			return self.dist
 		elif key == "time":
 			return self.passed_time
-		elif key == "height":
+		elif key == "elevation":
 			return self.abs_elevation
-		elif key == "height relative":
+		elif key == "elevation relative":
 			return self.rel_elevation
 		elif key == "elevation gain":
 			return self.cum_elevation
@@ -160,16 +166,16 @@ class Datapoint:
 			return self.speed
 		elif key == "date":
 			return self.timestamp
-		elif key == "total distance":
-			return self.stats["total distance"]
-		elif key == "total duration":
-			return self.stats["total duration"]
-		elif key == "total elevation":
-			return self.stats["total elevation"]
+		#elif key == "total distance":
+		#	return self.stats["total distance"]
+		#elif key == "total duration":
+		#	return self.stats["total duration"]
+		#elif key == "total elevation":
+		#	return self.stats["total elevation"]
 
 	def __str__(self):
 		_str = ""
-		for key in ["distance", "time", "height", "height relative", "elevation gain", "pace", "speed", "slope"]:
+		for key in ["distance", "time", "elevation", "elevation relative", "elevation gain", "pace", "speed", "slope"]:
 			_str += key+": "+ str(self.get_data_by_key(key))+" - "
 		return _str
 
@@ -236,7 +242,7 @@ class RouteProfilePlotter(SubTask):
 		self.height_inches = 9
 		self.dpi = 100
 
-		super().__init__("RouteProfilePlotter", 2+len(self.activities)//10)
+		super().__init__("RouteProfilePlotter", 3+len(self.activities)//10)
 		self.progress += 1
 
 	def construct_filename(self, basename:str, suffix:str=""):
@@ -244,6 +250,22 @@ class RouteProfilePlotter(SubTask):
 		if len(suffix) > 0:
 			filename += "_"+suffix
 		return filename
+
+	def _get_aggregated_data(self, key, data_index):
+		if key == "total distance":
+			return self.data[data_index][-1].get_data_by_key("distance")
+		if key == "total duration":
+			return self.data[data_index][-1].get_data_by_key("time")
+		if key == "total elevation":
+			return self.data[data_index][-1].get_data_by_key("elevation gain")
+
+		if key == "avg pace":
+			return np.mean([data.get_data_by_key("pace") for data in self.data[data_index]])
+		if key == "avg speed":
+			return np.mean([data.get_data_by_key("speed") for data in self.data[data_index]])
+
+		if key == "date":
+			return self.data[data_index][0].get_data_by_key("date")
 
 	def parse_data(self):
 		# computes statistics like distances, speed from raw gpx-data:
@@ -349,7 +371,7 @@ class RouteProfilePlotter(SubTask):
 		self.axes.set_xlabel(x_axis_key + " ("+KEY_UNITS[x_axis_key]+")")
 		self.axes.set_ylabel(y_axis_key + " ("+KEY_UNITS[y_axis_key]+")")
 
-	def _setup_colorbar(self, colormanager):
+	def _setup_colorbar(self, colormanager, color_axis_key):
 		cmmap_norm = mpl.colors.Normalize(vmin=colormanager.min_value.toordinal(), vmax=colormanager.max_value.toordinal())
 		cmap = mpl.colormaps[colormanager.colormap_name]
 		sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
@@ -362,8 +384,6 @@ class RouteProfilePlotter(SubTask):
 	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str=""):
 		plotdata = []
 		metadata = []
-
-		print (x_axis_key, y_axis_key)
 
 		plottype = "lineplot"
 		if x_axis_key in DATA_KEYS_CATEGORICAL or y_axis_key in DATA_KEYS_CATEGORICAL:
@@ -384,17 +404,23 @@ class RouteProfilePlotter(SubTask):
 					data["xs"].append(datapoint.get_data_by_key(x_axis_key))
 					data["ys"].append(datapoint.get_data_by_key(y_axis_key))
 			elif plottype == "scatterplot":
-				data["xs"].append(max([datapoint.get_data_by_key(x_axis_key) for datapoint in activity]))
-				data["ys"].append(max([datapoint.get_data_by_key(y_axis_key) for datapoint in activity]))
+				if x_axis_key not in DATA_KEYS_CATEGORICAL:
+					data["xs"].append(max([datapoint.get_data_by_key(x_axis_key) for datapoint in activity]))
+				else:
+					data["xs"].append(self._get_aggregated_data(x_axis_key, i))
+				if y_axis_key not in DATA_KEYS_CATEGORICAL:
+					data["ys"].append(max([datapoint.get_data_by_key(y_axis_key) for datapoint in activity]))
+				else:
+					data["ys"].append(self._get_aggregated_data(y_axis_key, i))
 			data["color"] = colormanager.get_color(self.activities[i])
 			plotdata.append(data)
 
 		i = 0
 		for data in plotdata:
 			if plottype == "lineplot":
-				self.axes.plot(data["xs"], data["ys"], c=data["color"])
+				self.axes.plot(data["xs"], data["ys"], color=data["color"])
 			elif plottype == "scatterplot":
-				self.axes.scatter(data["xs"], data["ys"], c=data["color"])
+				self.axes.scatter(data["xs"], data["ys"], color=data["color"])
 			i += 1
 			if i%20 == 0:
 				self.progress += 1
@@ -403,7 +429,7 @@ class RouteProfilePlotter(SubTask):
 		
 		# colorbar:
 		if color_axis_key in ["date"]:
-			self._setup_plot_axes(colormanager)
+			self._setup_colorbar(colormanager, color_axis_key)
 
 		# save plot
 		outputfolder = os.path.join("output", "activities")

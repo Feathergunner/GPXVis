@@ -13,7 +13,7 @@ from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
 
 from org import GPX_DIR
-
+from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT
 
 app = Flask(__name__)
 # init database:
@@ -70,6 +70,8 @@ def statistics():
 		"statistics.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
+		axisdim_cont= AXIS_DIM_CONT,
+		axisdim_cat=AXIS_DIM_CAT,
 		default_setting=_defaults)
 
 @app.route("/maps")
