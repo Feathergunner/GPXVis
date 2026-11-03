@@ -221,6 +221,14 @@ async function runDataPlotter() {
 	monitorProgress();
 }
 
+function selectAllActivities(select=true) {
+	checkboxes = document.getElementsByName('cb_activity_id');
+ 	for(var checkbox in checkboxes){
+		checkboxes[checkbox].checked = select;
+ 	}
+}
+
+
 function monitorProgress() {
 	/*
 	Gets progress-updates during server tasks

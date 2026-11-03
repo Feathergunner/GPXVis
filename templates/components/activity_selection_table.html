@@ -4,5 +4,8 @@
 
 	<h3>Select Activities:</h3>
 	{% include "components/activity_table.html" %}
+
+	<button onclick="selectAllActivities(true)"> Select all activities </button>
+	<button onclick="selectAllActivities(false)"> Deselect all activities </button>
 </div>
 {% endmacro %}

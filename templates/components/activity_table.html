@@ -34,7 +34,7 @@
 			</tr>
 				{% if addselectioncheckbox %}
 				<td class="checkbox-column">
-					<input type="checkbox" id="radiobox_activity" name="activity_id" value="{{ activity.id }}" {% if defaultchecked %}checked{% endif %}>
+					<input type="checkbox" id="radiobox_activity" name="cb_activity_id" value="{{ activity.id }}" {% if defaultchecked %}checked{% endif %}>
 				</td>
 				{% endif %}
 				<td> {{ activity.athlete_name }} </td>
