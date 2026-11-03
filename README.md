@@ -62,6 +62,10 @@ and ffmpeg (to generate the animations).
   - [x]  Meaningful colors.
 - [ ] Improve and unify datastructures.
 - [ ] Improve RouteGraphConstructor.
+- [ ] Track personal records on activities:
+  - [ ] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km)
+  - [ ] On custom segments (create segments from gpx-files)
+  - [ ] Display segments on maps.
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
 - [ ] Database version tracking, to allow future database extensions.
