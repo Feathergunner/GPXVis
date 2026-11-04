@@ -4,6 +4,7 @@
 import os
 import threading
 from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
+from flask_alembic import Alembic
 
 from src import AppInputManager as AIM
 from src import SubTask
@@ -25,6 +26,11 @@ with app.app_context():
 	db.create_all()
 	#DBH.test_db()
 	DBH.get_stats()
+
+# Initialize Flask-Alembic
+alembic = Alembic(app)
+with app.app_context():
+	alembic.upgrade()
 
 aim_rmap = AIM.AppInputManagerRouteMap()
 aim_ta = AIM.AppInputManagerTourAnimation()
