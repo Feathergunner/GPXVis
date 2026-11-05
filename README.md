@@ -58,18 +58,19 @@ and ffmpeg (to generate the animations).
 - [ ] Improve plots:
   - [ ]  Improve design.
   - [ ]  Support more attributes.
-  - [ ]  Lineplot/barplot/scatterplot depending on data.
+  - [x]  Lineplot/barplot/scatterplot depending on data.
   - [x]  Meaningful colors.
 - [ ] Improve and unify datastructures.
 - [ ] Improve RouteGraphConstructor.
 - [ ] Track personal records on activities:
-  - [ ] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km)
-  - [ ] On custom segments (create segments from gpx-files)
+  - [x] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km).
+  - [ ] On custom segments (create segments from gpx-files).
   - [ ] Display segments on maps.
+  - [ ] Improve record list: restrict displayed records, enable sorting.
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
-- [ ] Database version tracking, to allow future database extensions.
 - [ ] Build a package with a straightforward-to-use installer.
+- [x] Database version tracking, to allow future database extensions.
 - [x] Labels for animations.
 - [x] More options for creating animations (multiple activities at once, zoomed-in map).
 - [x] QOL features: default parameters.
