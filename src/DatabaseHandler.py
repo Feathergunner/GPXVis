@@ -5,20 +5,84 @@ import datetime
 from src.misc import construct_pace_string, construct_speed_string
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import or_
+from sqlalchemy import MetaData, or_
 
 from src.misc import format_time_hours
 from src.misc_files import get_metadata_from_file
 
-db = SQLAlchemy()
+naming_convention = {
+	"ix": "ix_%(column_0_label)s",
+	"uq": "uq_%(table_name)s_%(column_0_name)s",
+	"ck": "ck_%(table_name)s_%(constraint_name)s",
+	"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+	"pk": "pk_%(table_name)s"
+}
+db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
+
+### ATHLETES ###
 
 class Athlete(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String, nullable=False, unique=True)
 
+def add_athlete(name:str):
+	existing_athlete = db.session.execute(db.select(Athlete).filter_by(name=name)).scalar_one_or_none()
+
+	if existing_athlete is None:
+		athlete = Athlete(name=name)
+		db.session.add(athlete)
+		db.session.commit()
+	else:
+		## todo: raise exception
+		print("Error: Athlete with name:",name,"already exists.")
+		return
+
+	# if this is the first athlete, make this the default athlete:
+	all_athletes = get_all_athletes()
+	if len(all_athletes) == 1:
+		set_default_settings(athlete_id=all_athletes[0]["id"])
+
+def get_all_athletes():
+	athletes = db.session.execute(db.select(Athlete).order_by(Athlete.id)).scalars()
+	return [{"id": athlete.id, "name":athlete.name} for athlete in athletes]
+
+def delete_athletes(athlete_ids:list) -> None:
+	athletes_to_delete = db.session.execute(db.select(Athlete).where(Athlete.id.in_(athlete_ids))).scalars().all()
+	for athlete in athletes_to_delete:
+		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.athlete_id == athlete.id)).scalars().all()
+		delete_activities(activity_ids_to_delete)
+		db.session.delete(athlete)
+	db.session.commit()
+
+### ACTIVITY TYPES ###
+
 class ActivityType(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String, nullable=False, unique=True)
+
+def add_activitytype(name:str):
+	existing_activitytype = db.session.execute(db.select(ActivityType).filter_by(name=name)).scalar_one_or_none()
+
+	if existing_activitytype is None:
+		activity = ActivityType(name=name)
+		db.session.add(activity)
+		db.session.commit()
+	else:
+		print("Error: ActivityType with name:",name,"already exists.")
+
+def get_all_activitytypes():
+	types = db.session.execute(db.select(ActivityType).order_by(ActivityType.id)).scalars()
+	return [{"id": type.id, "name":type.name} for type in types]
+
+def delete_types(activitytype_ids:list) -> None:
+	types_to_delete = db.session.execute(db.select(ActivityType).where(ActivityType.id.in_(activitytype_ids))).scalars().all()
+	for type in types_to_delete:
+		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.activitytype_id == type.id)).scalars().all()
+		delete_activities(activity_ids_to_delete)
+		db.session.delete(type)
+	db.session.commit()
+
+### ACTIVITIES ###
 
 class Activity(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
@@ -71,55 +135,6 @@ class Activity(db.Model):
 			actdict["pace"] = construct_pace_string(self.duration, self.distance)
 		return actdict
 
-class DefaultSettings(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
-	athlete_id = db.Column(db.Integer, db.ForeignKey(Athlete.id),nullable=True)
-	activitytype_id = db.Column(db.Integer, db.ForeignKey(ActivityType.id),nullable=True)
-	mindate = db.Column(db.DateTime, nullable=True)
-	location_latitude = db.Column(db.Float, nullable=True)
-	location_longitude = db.Column(db.Float, nullable=True)
-
-	@property
-	def to_dict(self):
-		key_value_pairs = {
-				"athlete_id" : self.athlete_id,
-				"activitytype_id" : self.activitytype_id,
-				"mindate" : self.mindate,
-				"location_latitude" : self.location_latitude,
-				"location_longitude" : self.location_longitude
-		}
-		settings_dict = {
-			key : key_value_pairs[key] for key in key_value_pairs if key_value_pairs[key] is not None
-		}
-		return settings_dict
-
-def add_athlete(name:str):
-	existing_athlete = db.session.execute(db.select(Athlete).filter_by(name=name)).scalar_one_or_none()
-
-	if existing_athlete is None:
-		athlete = Athlete(name=name)
-		db.session.add(athlete)
-		db.session.commit()
-	else:
-		## todo: raise exception
-		print("Error: Athlete with name:",name,"already exists.")
-		return
-
-	# if this is the first athlete, make this the default athlete:
-	all_athletes = get_all_athletes()
-	if len(all_athletes) == 1:
-		set_default_settings(athlete_id=all_athletes[0]["id"])
-
-def add_activitytype(name:str):
-	existing_activitytype = db.session.execute(db.select(ActivityType).filter_by(name=name)).scalar_one_or_none()
-
-	if existing_activitytype is None:
-		activity = ActivityType(name=name)
-		db.session.add(activity)
-		db.session.commit()
-	else:
-		print("Error: ActivityType with name:",name,"already exists.")
-
 def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, athlete_name:str=""):
 	# check if athlete is in db & get id:
 	athlete = None
@@ -164,14 +179,6 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 	db.session.add(new_activity)
 	db.session.commit()
 
-def get_all_athletes():
-	athletes = db.session.execute(db.select(Athlete).order_by(Athlete.id)).scalars()
-	return [{"id": athlete.id, "name":athlete.name} for athlete in athletes]
-
-def get_all_activitytypes():
-	types = db.session.execute(db.select(ActivityType).order_by(ActivityType.id)).scalars()
-	return [{"id": type.id, "name":type.name} for type in types]
-
 def get_activities_by_ids(activity_ids:list):
 	activities = db.session.execute(db.select(Activity).where(Activity.id.in_(activity_ids))).scalars().all()
 	return activities
@@ -210,23 +217,6 @@ def get_activities_by_(
 	activities = db.session.execute(query.order_by(Activity.datetime)).scalars().all()
 	return activities
 
-### DELETE DATABASE ENTRIES:
-def delete_athletes(athlete_ids:list) -> None:
-	athletes_to_delete = db.session.execute(db.select(Athlete).where(Athlete.id.in_(athlete_ids))).scalars().all()
-	for athlete in athletes_to_delete:
-		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.athlete_id == athlete.id)).scalars().all()
-		delete_activities(activity_ids_to_delete)
-		db.session.delete(athlete)
-	db.session.commit()
-
-def delete_types(activitytype_ids:list) -> None:
-	types_to_delete = db.session.execute(db.select(ActivityType).where(ActivityType.id.in_(activitytype_ids))).scalars().all()
-	for type in types_to_delete:
-		activity_ids_to_delete = db.session.execute(db.select(Activity.id).where(Activity.activitytype_id == type.id)).scalars().all()
-		delete_activities(activity_ids_to_delete)
-		db.session.delete(type)
-	db.session.commit()
-
 def delete_activities(activity_ids:list) -> None:
 	activities_to_delete = get_activities_by_ids(activity_ids)
 	for activity in activities_to_delete:
@@ -252,6 +242,45 @@ def rename_activities(activity_ids:list, new_name:str) -> None:
 		counter += 1
 		suffix = "_"+str(counter)
 	db.session.commit()
+
+def delete_unused_files():
+	'''
+	checks all files in the gpxdata directory
+	and deletes those files that have no corresponding database activity entry.
+	'''
+
+	## todo
+
+	pass
+
+### DEFAULT SETTINGS ###
+
+class DefaultSettings(db.Model):
+	'''
+	Default settings are user-defined:
+	an athlete, an activity, a location, and a earliest date.
+	These are used as default values in the corresponding UI elements.
+	'''
+	id = db.Column(db.Integer, primary_key=True)
+	athlete_id = db.Column(db.Integer, db.ForeignKey(Athlete.id),nullable=True)
+	activitytype_id = db.Column(db.Integer, db.ForeignKey(ActivityType.id),nullable=True)
+	mindate = db.Column(db.DateTime, nullable=True)
+	location_latitude = db.Column(db.Float, nullable=True)
+	location_longitude = db.Column(db.Float, nullable=True)
+
+	@property
+	def to_dict(self):
+		key_value_pairs = {
+				"athlete_id" : self.athlete_id,
+				"activitytype_id" : self.activitytype_id,
+				"mindate" : self.mindate,
+				"location_latitude" : self.location_latitude,
+				"location_longitude" : self.location_longitude
+		}
+		settings_dict = {
+			key : key_value_pairs[key] for key in key_value_pairs if key_value_pairs[key] is not None
+		}
+		return settings_dict
 
 def set_default_settings(
 		athlete_id:int=None,
@@ -290,22 +319,118 @@ def get_default_settings():
 		return None
 	return settings.to_dict
 
-def delete_unused_files():
-	'''
-	checks all files in the gpxdata directory
-	and deletes those files that have no corresponding database activity entry.
-	'''
+### RECORD TYPES ###
 
-	## todo
+class RecordType(db.Model):
+	'''
+	A record type specifies a record category, that is an activity and a distance
+	'''
+	id = db.Column(db.Integer, primary_key=True)
+	activitytype_id = db.Column(db.Integer, db.ForeignKey(ActivityType.id),nullable=False)
+	distance = db.Column(db.Float, nullable=False)
+	name = db.Column(db.String, nullable=False)
 
-	pass
-	
+def add_recordtype(
+		activitytype_id:int,
+		distance:float,
+		name:str):
+	new_recordtype = RecordType(
+		activitytype_id=activitytype_id,
+		distance=distance,
+		name=name)
+	db.session.add(new_recordtype)
+	db.session.commit()
+
+### RECORD DATA ###
+
+class RecordData(db.Model):
+	'''
+	A record data object holds a specific instance of an record,
+	that is a specific time that an athlete achieved in a specific activity
+	'''
+	id = db.Column(db.Integer, primary_key=True)
+	recordtype_id = db.Column(db.Integer, db.ForeignKey(RecordType.id))
+	athlete_id = db.Column(db.Integer, db.ForeignKey(Athlete.id))
+	activity_id = db.Column(db.Integer, db.ForeignKey(Activity.id))
+	# the time the athlete took for the required distance:
+	time = db.Column(db.Float, nullable=False)
+	# the timepoint during the activity where the record starts:
+	starttime = db.Column(db.Float, nullable=False)
+
+	@property
+	def to_dict(self):
+		record_dict = {
+			"id" : self.id,
+			"recordtype_id" : self.recordtype_id,
+			"athlete_id" : self.athlete_id,
+			"activity_id" : self.activity_id,
+			"time" : self.time,
+			"starttime" : self.starttime,
+			"datetime" : db.session.execute(db.select(Activity.datetime).where(Activity.id == self.activity_id)).scalar_one_or_none(),
+			# pre-formatted data:
+			"type_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
+			"athlete_name" : db.session.execute(db.select(Athlete.name).where(Athlete.id == self.athlete_id)).scalar_one_or_none(),
+			"activity_name" : db.session.execute(db.select(Activity.name).where(Activity.id == self.activity_id)).scalar_one_or_none(),
+			"date" : ""
+		}
+		record_dict["date"] = f"{recorddict["datetime"].day:02d}.{recorddict["datetime"].month:02d}.{recorddict["datetime"].year:d}"
+		return record_dict
+
+def add_recorddata(
+		recordtype_id:int,
+		activity_id:int,
+		time:float,
+		starttime:float):
+	# check if this record (i.e. combination of activity and recordtype) already exists:
+	existing_record = db.session.execute(db.select(RecordData).where(RecordData.activity_id==activity_id, RecordData.recordtype_id==recordtype_id)).scalar_one_or_none()
+	if existing_record is None:
+		new_recorddata = RecordData(
+			recordtype_id=recordtype_id,
+			athlete_id=db.session.execute(db.select(Activity.athlete_id).where(Activity.id==activity_id)).scalar_one_or_none(),
+			activity_id=activity_id,
+			time=time,
+			starttime=starttime)
+		db.session.add(new_recorddata)
+		db.session.commit()
+	else:
+		# record already exists!
+		return
+
+def get_recorddata_by_(
+		recordtype_ids:list=None,
+		athlete_ids:list=None):
+	'''
+	Get from database:
+	- all records of a single athlete
+	- all records of a specific type
+	- the unique record of a specific type of an athlete
+	- all records.
+	'''
+	query = db.select(RecordData)
+
+	# restrict by recordtype:
+	if recordtype_ids is not None:
+		query = query.where(
+			RecordData.recordtype_id.in_(recordtype_ids))
+
+	# restrict by acthlte:
+	if athlete_ids is not None:
+		query = query.where(
+			RecordData.athlete_id.in_(athlete_ids))
+
+	records = db.session.execute(query).scalars().all()
+	return records
+
+### DATABASE META / TESTS
 
 def get_stats():
 	all_athletes = get_all_athletes()
 	all_types = get_all_activitytypes()
 	all_activities = db.session.execute(db.select(Activity).order_by(Activity.id)).scalars().all()
 	settings = get_default_settings()
+
+	print ("All tables:")
+	print(db.metadata.tables.keys())
 
 	print ("Database contains:")
 	print ("\tnumber of athletes:",len(all_athletes))
@@ -326,6 +451,7 @@ def test_db():
 	debug_print_all()
 
 def debug_print_all():
+
 	print ("Activity types:")
 	all_activities = get_all_activitytypes()
 	for act in all_activities:

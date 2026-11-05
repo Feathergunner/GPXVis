@@ -12,6 +12,11 @@ from src.RouteGraph import RouteGraphNode, BaseGraphEdge
 from src.misc_geometry import get_latlon_vector_length, round_gps
 from src.misc import ensure_dir_exists, load_gpx_file, parse_gps_from_gpx
 
+class RecordType():
+	def __init__(self, distance:float, name:str):
+		self.distance = distance
+		self.name = name
+
 class TourGraphEdge(BaseGraphEdge):
 	# class to hold tour segment data (like average speed) to be used for plotting
 
@@ -64,6 +69,8 @@ class TourGraph():
 
 		self.basename = name
 
+		self.total_distance = -1
+
 	def number_of_nodes(self) -> int:
 		return len(self.nodes.keys())
 
@@ -106,7 +113,48 @@ class TourGraph():
 			if previous_node is not None:
 				# construct edge:
 				self.add_egde(previous_node, new_node)
+				self.total_distance += self.edges[-1].length
 			previous_node = new_node
+
+	def get_records(self, recordtypes:list) -> list:
+		'''
+		recordtypes: list of RecordTypes.
+
+		For each recordtype, the best time within this activity is determined.
+		Returns a list of best times and list of corresponding start timepoints
+		'''
+		n_types = len(recordtypes)
+		n_edges = len(self.edges)
+		total_distance_at_position = [0]+[-1 for _ in range(n_edges)]
+		total_time_at_position = [0]+[-1 for _ in range(n_edges)]
+		for e_i in range(n_edges):
+			total_distance_at_position[e_i+1] = total_distance_at_position[e_i]+self.edges[e_i].length
+			total_time_at_position[e_i+1] = total_time_at_position[e_i]+self.edges[e_i].duration
+		current_start_pos = 0
+		current_ends_pos = [0 for _ in  range(n_types)]
+		best_times = [None for _ in range(n_types)]
+		best_times_start = [None for _ in range(n_types)]
+
+		reached_end = False
+
+		while not reached_end:
+			reached_end = True
+			current_start_pos += 1
+			for t_i in range(n_types):
+				while current_ends_pos[t_i]<n_edges+1 and  total_distance_at_position[current_ends_pos[t_i]]-total_distance_at_position[current_start_pos] < recordtypes[t_i].distance:
+					current_ends_pos[t_i] += 1
+				if current_ends_pos[t_i] >= n_edges:
+					continue
+				else:
+					reached_end = False
+					time = total_time_at_position[current_ends_pos[t_i]]-total_time_at_position[current_start_pos]
+					if best_times[t_i] is None or time < best_times[t_i]:
+						best_times[t_i] = time
+						best_times_start[t_i] = current_start_pos
+		print ("found the following best times:")
+		for n_t in range(n_types):
+			print (recordtypes[n_t].name,":",best_times[n_t],"starts at:",best_times_start[n_t])
+		return best_times, best_times_start					
 
 	def get_split_segments(self, splitdistance:int=None, splittime:int=None, offset:int=0):
 		'''
@@ -129,10 +177,8 @@ class TourGraph():
 		current_total_covered = 0
 		if splitdistance is not None:
 			next_split_end = splitdistance
-			#print ("  by distance:",splitdistance)
 		else:
 			next_split_end = splittime
-			#print ("  by time:",splittime)
 
 		start_edge = offset
 
@@ -187,8 +233,6 @@ class TourGraph():
 				}
 			splits.append(new_split)
 
-		#print ("Constructed splits for tour",self.basename,":",len(splits))
-		#print ("split sizes (edges):", [len(s[edge_ids]) for s in splits])
 		return splits
 
 class TourGraphConstructor(SubTask):

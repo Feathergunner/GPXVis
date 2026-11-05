@@ -20,14 +20,11 @@ app = Flask(__name__)
 # init database:
 DB_PATH = "project.db"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+app.config["ALEMBIC_CONTEXT"] = {"render_as_batch": True}
 
 db.init_app(app)
-with app.app_context():
-	db.create_all()
-	#DBH.test_db()
-	DBH.get_stats()
 
-# Initialize Flask-Alembic
+# Initialize Flask-Alembic and run upgrades
 alembic = Alembic(app)
 with app.app_context():
 	alembic.upgrade()
@@ -39,7 +36,7 @@ aim_ad = AIM.AppInputManagerActivityData()
 global current_job
 current_job = None
 
-# HTML-Seite anzeigen
+# render html:
 @app.route("/")
 def index():
 	return render_template("index.html")
@@ -101,6 +98,15 @@ def animations():
 	return render_template(
 		"animations.html",
 		athletes=_athletes,
+		activity_types=_activity_types,
+		default_setting=_defaults)
+
+@app.route("/records")
+def records():
+	_activity_types = DBH.get_all_activitytypes()
+	_defaults = DBH.get_default_settings()
+	return render_template(
+		"records.html",
 		activity_types=_activity_types,
 		default_setting=_defaults)
 
@@ -391,10 +397,10 @@ def get_result_path():
 def return_img_filepath(filename):
 	return send_from_directory("output", filename)
 
-# Server starten
+# start server
 if __name__ == "__main__":
-	# init database:
 	with app.app_context():
-		db.create_all()
+		# print database stats to console
+		DBH.get_stats()
 	# run app:
 	app.run(debug=True)
