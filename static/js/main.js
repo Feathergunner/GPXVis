@@ -228,6 +228,19 @@ function selectAllActivities(select=true) {
  	}
 }
 
+async function createRecordCategory(){
+	const response = await fetch("/api/create_record_category", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			recordActivityType: getFromSelection("type_id"),
+			recordName: document.getElementById("input_new_record_name").value,
+			recordDistance: document.getElementById("input_new_record_distance").value
+		})
+	});
+}
 
 function monitorProgress() {
 	/*

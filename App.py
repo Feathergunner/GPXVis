@@ -12,6 +12,7 @@ from src.DatabaseHandler import db, get_activities_by_, get_activities_by_ids
 from src import DatabaseHandler as DBH
 from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
+from src.RecordUpdater import update_records
 
 from org import GPX_DIR
 from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT
@@ -104,10 +105,20 @@ def animations():
 @app.route("/records")
 def records():
 	_activity_types = DBH.get_all_activitytypes()
+	_records = DBH.get_recorddata_by_()
 	_defaults = DBH.get_default_settings()
+
+	records_by_type = {}
+	for record in _records:
+		r_dict = record.to_dict
+		typeclass = r_dict["type_name"]+" ("+r_dict["activitytype_name"]+")"
+		if typeclass not in records_by_type:
+			records_by_type[typeclass] = []
+		records_by_type[typeclass].append(r_dict)
 	return render_template(
 		"records.html",
 		activity_types=_activity_types,
+		recorddata=records_by_type,
 		default_setting=_defaults)
 
 @app.route("/settings")
@@ -366,6 +377,18 @@ def run_DataPlotter():
 		"total_progress": 0
 	})
 
+@app.route("/api/create_record_category", methods=["POST"])
+def create_record_category():
+	data = request.get_json()
+	for activity_type in data.get("recordActivityType", ""):
+		DBH.add_recordtype(
+			activity_type,
+			data.get("recordDistance", ""),
+			data.get("recordName", ""))
+	return {
+		"status": "ok"
+	}
+
 @app.route("/api/progress")
 def get_computation_progress():
 	global current_job
@@ -402,5 +425,6 @@ if __name__ == "__main__":
 	with app.app_context():
 		# print database stats to console
 		DBH.get_stats()
+		update_records(db)
 	# run app:
 	app.run(debug=True)

@@ -194,6 +194,7 @@ def get_activities_by_(
 	if athlete_ids is None, all athletes are considered
 	if activitytype_ids is None, all activity_types are considered
 	'''
+
 	query = db.select(Activity)
 
 	# restrict by acthlte:
@@ -207,13 +208,14 @@ def get_activities_by_(
 			Activity.activitytype_id.in_(activitytype_ids))
 
 	# restrict by date:
-	if use_unkown_date:
-		query = query.where(or_(
-			Activity.datetime.is_(None),
-			Activity.datetime >= date_min, Activity.datetime < date_max))
-	else:
-		query = query.where(
-			Activity.datetime >= date_min, Activity.datetime < date_max)
+	if date_min is not None and date_max is not None:
+		if use_unkown_date:
+			query = query.where(or_(
+				Activity.datetime.is_(None),
+				Activity.datetime >= date_min, Activity.datetime < date_max))
+		else:
+			query = query.where(
+				Activity.datetime >= date_min, Activity.datetime < date_max)
 	activities = db.session.execute(query.order_by(Activity.datetime)).scalars().all()
 	return activities
 
@@ -334,12 +336,27 @@ def add_recordtype(
 		activitytype_id:int,
 		distance:float,
 		name:str):
-	new_recordtype = RecordType(
-		activitytype_id=activitytype_id,
-		distance=distance,
-		name=name)
-	db.session.add(new_recordtype)
-	db.session.commit()
+	# check if recordtype exist:
+	existing_records = db.session.execute(db.select(RecordType).where(RecordType.name==name, RecordType.activitytype_id==activitytype_id)).scalar_one_or_none()
+	if existing_records is None:
+		new_recordtype = RecordType(
+			activitytype_id=activitytype_id,
+			distance=distance,
+			name=name)
+		db.session.add(new_recordtype)
+		db.session.commit()
+	else:
+		# recordtype already exists!
+		return
+
+def get_recordtypes_by_(activitytype_id:int=None):
+	query = db.select(RecordType)
+
+	if activitytype_id is not None:
+		query = query.where(RecordType.activitytype_id==activitytype_id)
+
+	types = db.session.execute(query).scalars().all()
+	return types
 
 ### RECORD DATA ###
 
@@ -359,6 +376,8 @@ class RecordData(db.Model):
 
 	@property
 	def to_dict(self):
+
+		activity_type_id = db.session.execute(db.select(RecordType.activitytype_id).where(RecordType.id==self.recordtype_id)).scalar_one_or_none()
 		record_dict = {
 			"id" : self.id,
 			"recordtype_id" : self.recordtype_id,
@@ -368,12 +387,14 @@ class RecordData(db.Model):
 			"starttime" : self.starttime,
 			"datetime" : db.session.execute(db.select(Activity.datetime).where(Activity.id == self.activity_id)).scalar_one_or_none(),
 			# pre-formatted data:
+			"activitytype_name" : db.session.execute(db.select(ActivityType.name).where(ActivityType.id==activity_type_id)).scalar_one_or_none(),
+			"time_hms" : format_time_hours(self.time, include_seconds=True),
 			"type_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
 			"athlete_name" : db.session.execute(db.select(Athlete.name).where(Athlete.id == self.athlete_id)).scalar_one_or_none(),
 			"activity_name" : db.session.execute(db.select(Activity.name).where(Activity.id == self.activity_id)).scalar_one_or_none(),
 			"date" : ""
 		}
-		record_dict["date"] = f"{recorddict["datetime"].day:02d}.{recorddict["datetime"].month:02d}.{recorddict["datetime"].year:d}"
+		record_dict["date"] = f"{record_dict["datetime"].day:02d}.{record_dict["datetime"].month:02d}.{record_dict["datetime"].year:d}"
 		return record_dict
 
 def add_recorddata(
@@ -397,6 +418,7 @@ def add_recorddata(
 		return
 
 def get_recorddata_by_(
+		activity_ids:list=None,
 		recordtype_ids:list=None,
 		athlete_ids:list=None):
 	'''
@@ -407,6 +429,11 @@ def get_recorddata_by_(
 	- all records.
 	'''
 	query = db.select(RecordData)
+
+	# restrict by activity:
+	if activity_ids is not None:
+		query = query.where(
+			RecordData.activity_id.in_(activity_ids))
 
 	# restrict by recordtype:
 	if recordtype_ids is not None:
@@ -428,6 +455,8 @@ def get_stats():
 	all_types = get_all_activitytypes()
 	all_activities = db.session.execute(db.select(Activity).order_by(Activity.id)).scalars().all()
 	settings = get_default_settings()
+	all_recordtypes = db.session.execute(db.select(RecordType)).scalars().all()
+	all_records = db.session.execute(db.select(RecordData)).scalars().all()
 
 	print ("All tables:")
 	print(db.metadata.tables.keys())
@@ -436,6 +465,10 @@ def get_stats():
 	print ("\tnumber of athletes:",len(all_athletes))
 	print ("\tnumber of types:",len(all_types))
 	print ("\tnumber of activities:",len(all_activities))
+	if all_recordtypes is not None:
+		print ("\tnumber of record types:", len(all_recordtypes))
+	if all_records is not None:
+		print ("\tnumber of records:", len(all_records))
 	if settings is not None:
 		print ("\tsettings:",settings)
 	else:
@@ -465,3 +498,7 @@ def debug_print_all():
 	print ("Activities:")
 	activities = db.session.execute(db.select(Activity).order_by(Activity.id)).scalars()
 	print (["id: "+str(act.id)+", path: "+str(act.filepath) for act in activities])
+
+	print ("Record types:")
+	types = db.session.execute(db.select(RecordType)).scalars().all()
+	print ([type.name+" ("+str(type.distance)+") ("+str(type.activitytype_id)+")" for type in types])

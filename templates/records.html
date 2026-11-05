@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Records{% endblock %}
+{% block content %}
+	<h1>Records</h1>
+	<div class="panel">
+		<h3>Create New Record Category</h3>
+		<div class="cleanpanel divrow">
+			{% include "components/select_type.html" %}
+			{% include "components/setup_record.html" %}
+		</div>
+		<button onclick="createRecordCategory()">Create record category</button>
+	</div>
+	<div class="panel">
+		<h3>All Records</h3>
+		<div class="cleanpanel">
+			{% include "components/record_table.html" %}
+		</div>
+	</div>
+{% endblock %}

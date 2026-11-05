@@ -126,7 +126,7 @@ class TourGraph():
 		n_types = len(recordtypes)
 		n_edges = len(self.edges)
 		total_distance_at_position = [0]+[-1 for _ in range(n_edges)]
-		total_time_at_position = [0]+[-1 for _ in range(n_edges)]
+		total_time_at_position = [datetime.timedelta(0)]+[-1 for _ in range(n_edges)]
 		for e_i in range(n_edges):
 			total_distance_at_position[e_i+1] = total_distance_at_position[e_i]+self.edges[e_i].length
 			total_time_at_position[e_i+1] = total_time_at_position[e_i]+self.edges[e_i].duration
@@ -141,7 +141,7 @@ class TourGraph():
 			reached_end = True
 			current_start_pos += 1
 			for t_i in range(n_types):
-				while current_ends_pos[t_i]<n_edges+1 and  total_distance_at_position[current_ends_pos[t_i]]-total_distance_at_position[current_start_pos] < recordtypes[t_i].distance:
+				while current_ends_pos[t_i]<n_edges+1 and  total_distance_at_position[current_ends_pos[t_i]]-total_distance_at_position[current_start_pos] < recordtypes[t_i].distance*1000:
 					current_ends_pos[t_i] += 1
 				if current_ends_pos[t_i] >= n_edges:
 					continue
@@ -152,9 +152,12 @@ class TourGraph():
 						best_times[t_i] = time
 						best_times_start[t_i] = current_start_pos
 		print ("found the following best times:")
+		recorddata = {}
 		for n_t in range(n_types):
+			if best_times[n_t] is not None:
+				recorddata[recordtypes[n_t].id] = [best_times[n_t].total_seconds(), best_times_start[n_t]]
 			print (recordtypes[n_t].name,":",best_times[n_t],"starts at:",best_times_start[n_t])
-		return best_times, best_times_start					
+		return recorddata
 
 	def get_split_segments(self, splitdistance:int=None, splittime:int=None, offset:int=0):
 		'''

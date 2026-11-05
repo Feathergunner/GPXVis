@@ -1,0 +1,26 @@
+<div class="panel floating">
+	{% for type in recorddata %}
+	    <h3>Records for {{ type }}:</h3>
+		<table>
+			<thead>
+				<tr>
+					<td>Time</td>
+					<td>Athlete</td>
+					<td>Date</td>
+					<td>Activity</td>
+				</tr>
+			</thead>
+			<tbody>
+				{% for record in recorddata[type] %}
+				<tr>
+					<td>{{ record.time_hms }}</td>
+					<td>{{ record.athlete_name }}</td>
+					<td>{{ record.date }}</td>
+					<td>{{ record.activity_name }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endfor %}
+</div>
+
