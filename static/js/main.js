@@ -137,7 +137,7 @@ async function deleteActivities() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: getFromSelection("activity_id")
+			activity_ids: getFromSelection("cb_activity_id")
 		})
 	});
 }
@@ -149,7 +149,7 @@ async function renameActivities() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: getFromSelection("activity_id"),
+			activity_ids: getFromSelection("cb_activity_id"),
 			new_name: document.getElementById("input_activityname").value
 		})
 	});
@@ -166,7 +166,7 @@ async function runMapPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: getFromSelection("activity_id"),
+			activity_ids: getFromSelection("cb_activity_id"),
 			lat: latitude,
 			lon: longitude,
 			mapzoom: mapzoom,
@@ -186,7 +186,7 @@ async function runTourPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: getFromSelection("activity_id"),
+			activity_ids: getFromSelection("cb_activity_id"),
 			mapzoom: mapzoom,
 			animation_speedup: document.getElementById("input_animation_speedup").value,
 			animation_fps: document.getElementById("input_animation_fps").value,
@@ -208,7 +208,7 @@ async function runDataPlotter() {
 			"Content-Type": "application/json"
 		},
 		body: JSON.stringify({
-			activity_ids: getFromSelection("activity_id"),
+			activity_ids: getFromSelection("cb_activity_id"),
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
