@@ -16,9 +16,9 @@ Activities from two different athletes are displayed, one in red, the other in b
 
 ### Plotting Activity Data
 For example: elevation profile, total elevation gain, or pace. The x- and y-axes can be specified individually.
-![example_profile_height](examples_and_screenshots/example_plot_distance_height.png "Plot height")
-![example_profile_elevation](examples_and_screenshots/example_plot_time_elevationgain.png "Plot elevation")
-![example_profile_pace](examples_and_screenshots/example_plot_distance_pace.png "Plot pace")
+![example_profile_elevation](examples_and_screenshots/example_1_distance_elevation.png "Plot elevation profile")
+![example_elevation_gain](examples_and_screenshots/example_2_time_elevationgain.png "Plot elevation gain")
+![example_pace](examples_and_screenshots/example_3_distance_pace.png "Plot pace")
 
 ## The User Interface
 All scripts can be used via a webinterface, with a local python-flask-server as backend.
