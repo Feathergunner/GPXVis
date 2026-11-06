@@ -16,10 +16,11 @@
 		</div>
 
         <div class="panel">
-            <h3>View Database</h3>
+            <h3>Manage Activity Database</h3>
             1) Go to "Database" tab.<br>
             2) Choose athletes, activity-types and a date range.<br>
-            3) Click "Show relevant activities".
+            3) Click "Show relevant activities".<br>
+            4) You can delete activity-types, athletes and single activities.
         </div>
 
         <div class="panel">
@@ -60,5 +61,18 @@
             <br><br>
             The resulting animation is stored as a .mp4-file in otuput/animations
 		</div>
+
+        <div class="panel">
+            <h3>Records</h3>
+            1) Go to "Records" tab.<br>
+            2) Add a record type by specifying an activity category, a distance, and a name; e.g. "running", 42.2km, "Marathon".<br>
+            3) Activities in the database are parsed every time the app is started, each activity gets exactly one record of each applicable type. That is, e.g. activities of type "cycling" do not qualify for a marathon, and a running activity with only 8km distance obviously also does not qualify for the marathon.<br>
+            4) All existing records are displayed in tables in the "Records" tab.            
+        </div>
+
+        <div class="panel">
+            <h3>Updates</h3>
+            For updates, check:<br><br> https://github.com/Feathergunner/GPXVis
+        </div>
 	</div>
 {% endblock %}
