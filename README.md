@@ -67,6 +67,8 @@ and ffmpeg (to generate the animations).
   - [ ] On custom segments (create segments from gpx-files).
   - [ ] Display segments on maps.
   - [ ] Improve record list: restrict displayed records, enable sorting.
+  - [ ] Plot record statistics.
+  - [ ] Parse activities for records during upload to database.
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
 - [ ] Build a package with a straightforward-to-use installer.
