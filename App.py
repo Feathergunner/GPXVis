@@ -8,11 +8,11 @@ from flask_alembic import Alembic
 
 from src import AppInputManager as AIM
 from src import SubTask
-from src.DatabaseHandler import db, get_activities_by_, get_activities_by_ids
+from src import RecordUpdater as RU
 from src import DatabaseHandler as DBH
+from src.DatabaseHandler import db, get_activities_by_, get_activities_by_ids
 from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
-from src.RecordUpdater import update_records
 
 from org import GPX_DIR
 from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT
@@ -428,6 +428,9 @@ if __name__ == "__main__":
 	with app.app_context():
 		# print database stats to console
 		DBH.get_stats()
-		update_records(db)
+		#db.session.query(DBH.RecordData).delete()
+		#db.session.commit()
+		updater = RU.RecordUpdater(db)
+		updater.update_records()
 	# run app:
 	app.run(debug=True)

@@ -6,7 +6,7 @@ A superclass to handle progress report of threaded tasks
 '''
 
 class SubTask():
-	def __init__(self, taskname:str="", weight:int=1):
+	def __init__(self, taskname:str="", weight:int=1, verbose:bool=False):
 		self.taskname = taskname
 		#self.current_computation_step = ""
 		#self.current_computation_description = ""
@@ -16,6 +16,7 @@ class SubTask():
 		self.progress = 0
 		self.error = False
 		self.outputfilepath = None
+		self.verbose = verbose
 
 	def __str__(self) -> str:
 		retstr = "task: "+self.taskname+" ("
@@ -29,8 +30,9 @@ class SubTask():
 		self.children.clear()
 
 	def finish_progress(self) -> None:
-		print ("Finish task:", self.taskname)
-		print ("  (current progress:",self.progress,"/",self.weight,")")
+		if self.verbose:
+			print ("Finish task:", self.taskname)
+			print ("  (current progress:",self.progress,"/",self.weight,")")
 		for c in self.children:
 			c.finish_progress()
 		self.progress = self.weight
@@ -38,25 +40,20 @@ class SubTask():
 	def add_task_child(self, child) -> None:
 		self.children.append(child)
 
-	def get_total_weight(self, verbose:bool=False) -> int:
-		if verbose:
-			print ("weight:",[self.weight]+[c.get_total_weight(False) for c in self.children])
-		return self.weight+sum(c.get_total_weight(False) for c in self.children)
+	def get_total_weight(self) -> int:
+		if self.verbose:
+			print ("weight:",[self.weight]+[c.get_total_weight() for c in self.children])
+		return self.weight+sum(c.get_total_weight() for c in self.children)
 
-	def get_progress_sum(self, verbose:bool=False) -> int:
-		if verbose:
-			print ("progress:",[self.progress]+[c.get_progress_sum(False) for c in self.children])
+	def get_progress_sum(self) -> int:
+		if self.verbose:
+			print ("progress:",[self.progress]+[c.get_progress_sum() for c in self.children])
 		return self.progress+sum(c.get_progress_sum() for c in self.children)
 
 	def get_progress_percentage(self) -> float:
 		prg_sum = self.get_progress_sum()
 		prg_weight = self.get_total_weight()
-		print ("progress:",prg_sum,"/",prg_weight)
 		return prg_sum/prg_weight
-
-	#def get_progress(self):
-	#	progress_sum = sum(c.get_progress() for c in self.children)+self.progress
-	#	return progress_sum/self.get_total_weight()
 
 	def get_current_taskname(self) -> str:
 		taskname = None

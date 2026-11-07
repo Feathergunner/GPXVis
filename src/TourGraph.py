@@ -130,13 +130,13 @@ class TourGraph():
 		for e_i in range(n_edges):
 			total_distance_at_position[e_i+1] = total_distance_at_position[e_i]+self.edges[e_i].length
 			total_time_at_position[e_i+1] = total_time_at_position[e_i]+self.edges[e_i].duration
-		current_start_pos = 0
 		current_ends_pos = [0 for _ in  range(n_types)]
 		best_times = [None for _ in range(n_types)]
-		best_times_start = [None for _ in range(n_types)]
+		best_times_start_id = [None for _ in range(n_types)]
+		best_times_end_id = [None for _ in range(n_types)]
 
+		current_start_pos = -1
 		reached_end = False
-
 		while not reached_end:
 			reached_end = True
 			current_start_pos += 1
@@ -147,16 +147,29 @@ class TourGraph():
 					continue
 				else:
 					reached_end = False
-					time = total_time_at_position[current_ends_pos[t_i]]-total_time_at_position[current_start_pos]
 					if best_times[t_i] is None or time < best_times[t_i]:
-						best_times[t_i] = time
-						best_times_start[t_i] = current_start_pos
-		print ("found the following best times:")
+						best_times_start_id[t_i] = current_start_pos
+						best_times_end_id[t_i] = current_ends_pos[t_i]
+		
+		# get exact data:
+		best_times_start = [total_time_at_position[best_times_start_id[t_i]] for t_i in range(n_types)]
+		best_times = [total_time_at_position[best_times_end_id[t_i]]-total_time_at_position[best_times_start_id[t_i]] for t_i in range(n_types)]
+		elevation_gains = [0 for _ in range(n_types)]
+		elevation_deltas = [0 for _ in range(n_types)]
+		for t_i in range(n_types):
+			for e_i in range(best_times_start_id[t_i], best_times_end_id[t_i]):
+				elevation_gains[t_i] += max(0, self.edges[e_i].elevation_change)
+				elevation_deltas[t_i] += self.edges[e_i].elevation_change
+
 		recorddata = {}
-		for n_t in range(n_types):
-			if best_times[n_t] is not None:
-				recorddata[recordtypes[n_t].id] = [best_times[n_t].total_seconds(), best_times_start[n_t]]
-			print (recordtypes[n_t].name,":",best_times[n_t],"starts at:",best_times_start[n_t])
+		for t_i in range(n_types):
+			if best_times[t_i] is not None:
+				recorddata[recordtypes[t_i].id] = {
+					"time": best_times[t_i].total_seconds(),
+					"start": best_times_start[t_i].total_seconds(),
+					"elevation_gain": elevation_gains[t_i],
+					"elevation_delta": elevation_deltas[t_i]
+				}
 		return recorddata
 
 	def get_split_segments(self, splitdistance:int=None, splittime:int=None, offset:int=0):

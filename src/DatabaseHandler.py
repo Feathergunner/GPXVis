@@ -371,12 +371,17 @@ class RecordData(db.Model):
 	activity_id = db.Column(db.Integer, db.ForeignKey(Activity.id))
 	# the time the athlete took for the required distance:
 	time = db.Column(db.Float, nullable=False)
+	# the elevation gain during the record distance:
+	elevation_gain = db.Column(db.Float)
+	# the elevation delta during the record distance:
+	elevation_delta = db.Column(db.Float)
 	# the timepoint during the activity where the record starts:
 	starttime = db.Column(db.Float, nullable=False)
-
+	# the timepoint during the activity where the record ends:
+	endtime = db.Column(db.Float)
+	
 	@property
 	def to_dict(self):
-
 		activity_type_id = db.session.execute(db.select(RecordType.activitytype_id).where(RecordType.id==self.recordtype_id)).scalar_one_or_none()
 		record_dict = {
 			"id" : self.id,
@@ -384,17 +389,25 @@ class RecordData(db.Model):
 			"athlete_id" : self.athlete_id,
 			"activity_id" : self.activity_id,
 			"time" : self.time,
+			"elevation_gain": self.elevation_gain,
+			"elevation_delta": self.elevation_delta,
 			"starttime" : self.starttime,
 			"datetime" : db.session.execute(db.select(Activity.datetime).where(Activity.id == self.activity_id)).scalar_one_or_none(),
 			# pre-formatted data:
 			"activitytype_name" : db.session.execute(db.select(ActivityType.name).where(ActivityType.id==activity_type_id)).scalar_one_or_none(),
 			"time_hms" : format_time_hours(self.time, include_seconds=True),
+			#"elevation_gain_str": f"{self.elevation_gain:0.0f}",
+			#"elevation_delta_str": f"{self.elevation_delta:0.0f}",
 			"rtype_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
 			"rtype_distance" : db.session.execute(db.select(RecordType.distance).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
 			"athlete_name" : db.session.execute(db.select(Athlete.name).where(Athlete.id == self.athlete_id)).scalar_one_or_none(),
 			"activity_name" : db.session.execute(db.select(Activity.name).where(Activity.id == self.activity_id)).scalar_one_or_none(),
 			"date" : ""
 		}
+		if self.endtime is not None:
+			record_dict["endtime"] = self.endtime
+		else:
+			record_dict["endtime"] = self.starttime+self.time
 		record_dict["date"] = f"{record_dict["datetime"].day:02d}.{record_dict["datetime"].month:02d}.{record_dict["datetime"].year:d}"
 		return record_dict
 
@@ -402,7 +415,9 @@ def add_recorddata(
 		recordtype_id:int,
 		activity_id:int,
 		time:float,
-		starttime:float):
+		starttime:float,
+		elevation_gain:float,
+		elevation_delta:float):
 	# check if this record (i.e. combination of activity and recordtype) already exists:
 	existing_record = db.session.execute(db.select(RecordData).where(RecordData.activity_id==activity_id, RecordData.recordtype_id==recordtype_id)).scalar_one_or_none()
 	if existing_record is None:
@@ -411,7 +426,10 @@ def add_recorddata(
 			athlete_id=db.session.execute(db.select(Activity.athlete_id).where(Activity.id==activity_id)).scalar_one_or_none(),
 			activity_id=activity_id,
 			time=time,
-			starttime=starttime)
+			starttime=starttime,
+			endtime=starttime+time,
+			elevation_gain=elevation_gain,
+			elevation_delta=elevation_delta)
 		db.session.add(new_recorddata)
 		db.session.commit()
 	else:
