@@ -389,7 +389,8 @@ class RecordData(db.Model):
 			# pre-formatted data:
 			"activitytype_name" : db.session.execute(db.select(ActivityType.name).where(ActivityType.id==activity_type_id)).scalar_one_or_none(),
 			"time_hms" : format_time_hours(self.time, include_seconds=True),
-			"type_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
+			"rtype_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
+			"rtype_distance" : db.session.execute(db.select(RecordType.distance).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
 			"athlete_name" : db.session.execute(db.select(Athlete.name).where(Athlete.id == self.athlete_id)).scalar_one_or_none(),
 			"activity_name" : db.session.execute(db.select(Activity.name).where(Activity.id == self.activity_id)).scalar_one_or_none(),
 			"date" : ""

@@ -111,10 +111,13 @@ def records():
 	records_by_type = {}
 	for record in _records:
 		r_dict = record.to_dict
-		typeclass = r_dict["type_name"]+" ("+r_dict["activitytype_name"]+")"
-		if typeclass not in records_by_type:
-			records_by_type[typeclass] = []
-		records_by_type[typeclass].append(r_dict)
+		if r_dict["activitytype_name"] not in records_by_type:
+			records_by_type[r_dict["activitytype_name"]] = {}
+		if r_dict["rtype_name"] not in records_by_type[r_dict["activitytype_name"]]:
+			records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]] = []
+		records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]].append(r_dict)
+	for atype in records_by_type:
+		records_by_type[atype] = dict(sorted(records_by_type[atype].items(), key=lambda item: item[1][0]["rtype_distance"]))
 	return render_template(
 		"records.html",
 		activity_types=_activity_types,
