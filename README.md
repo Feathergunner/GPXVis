@@ -66,7 +66,8 @@ and ffmpeg (to generate the animations).
   - [x] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km).
   - [ ] On custom segments (create segments from gpx-files).
   - [ ] Display segments on maps.
-  - [ ] Improve record list: restrict displayed records, enable sorting.
+  - [x] Improve record list: restrict displayed records, enable sorting.
+  - [ ] Records considering the full activity: longest distance, most elevation gain, longest duration
   - [ ] Plot record statistics.
   - [ ] Parse activities for records during upload to database.
 - [ ] Progress bar for uploading activities.
