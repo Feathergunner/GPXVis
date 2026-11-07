@@ -425,6 +425,7 @@ def return_img_filepath(filename):
 
 # start server
 if __name__ == "__main__":
+	# run app:
 	with app.app_context():
 		# print database stats to console
 		DBH.get_stats()
@@ -432,5 +433,4 @@ if __name__ == "__main__":
 		#db.session.commit()
 		updater = RU.RecordUpdater(db)
 		updater.update_records()
-	# run app:
-	app.run(debug=True)
+	app.run(debug=False)

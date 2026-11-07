@@ -25,7 +25,7 @@ class RecordUpdater(SubTask):
 				for activity in all_activities:
 					self.progress += 1
 					if self.progress % 50 == 0:
-						print ("progress updating records: "+str(self.get_progress_percentage())+"%")
+						print (f"progress updating records: {100*self.get_progress_percentage():0.1f}%")
 					# get recordtypes that exist for this activity:
 					all_recordtype_ids = [record.recordtype_id for record in DBH.get_recorddata_by_([activity.id])]
 					# find missing records on this specific activity:

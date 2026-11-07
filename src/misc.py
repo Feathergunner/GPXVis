@@ -184,18 +184,30 @@ def check_gps_range(lat:float, lon:float, ref_lat:float, ref_lon:float, delta_km
 		return False
 
 ### LOAD GPX DATA ###
-def parse_gps_from_gpx(gpxdata) -> list:
+def parse_gps_from_gpx(gpxdata, smooth_elevation_size:int=5) -> list:
 	'''
 	parses gpx-file into a list of dict-encoded datapoints
 	'''
 	gpspoints = []
+	first_valid_index = None
 	for track in gpxdata.tracks:
 		for segment in track.segments:
-			for point in segment.points:
-				#print (point)
-				if point.latitude > 1 and point.longitude > 1:
-					gpspoints.append({"latitude": point.latitude, "longitude": point.longitude, "elevation": point.elevation, "timestamp": point.time})
-				#print(f'Point at ({point.latitude},{point.longitude}) -> {point.elevation}')
+			for p_i in range(len(segment.points)):
+				point = segment.points[p_i]
+				# ensure coordinates are not (0,0).
+				# This happens sometimes as default values, but since the position is in the middle of the ocean,
+				# we can always dismiss the catapoint in this case:
+				if abs(point.latitude) > 1 and abs(point.longitude) > 1:
+					if first_valid_index is None:
+						first_valid_index = p_i
+					if smooth_elevation_size>0:
+						# get average of last three datapoints:
+						smoothing_start = max(p_i-smooth_elevation_size, first_valid_index)
+						smoothing_amount = p_i-smoothing_start+1
+						elevation = sum([segment.points[j].elevation for j in range(smoothing_start, p_i+1)])/smoothing_amount
+					else:
+						elevation = point.elevation
+					gpspoints.append({"latitude": point.latitude, "longitude": point.longitude, "elevation": elevation, "timestamp": point.time})
 	return gpspoints
 
 def load_gpx_file(filepath) -> tuple:
