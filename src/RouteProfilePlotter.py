@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-import string
 
 import os
+import copy
 import math
 import numpy as np
 from matplotlib import pyplot as plt
@@ -231,6 +232,37 @@ class Minisplit(Datapoint):
 			self.cum_elevation = previous_minisplit.cum_elevation + max(0, self.abs_elevation-previous_minisplit.abs_elevation)
 			self.stats = previous_minisplit.stats
 
+def cut_activity_to_timeframe(activity_data, min_time:float=None, max_time:float=None):
+	'''
+	Returns a copy of a subset of the activity.
+	Datapoints are adjusted s.t. distance, passed_time, rel_elevation and cum_elevation are w.r.t. to the timeframe.
+	
+	activity: list of Datapoints
+	min_time, max_time: floats
+	'''
+	timeframe = []
+	first_datapoint_index = 0
+	last_datapoint_index = len(activity_data)
+	if min_time is not None:
+		while activity_data[first_datapoint_index].passed_time < min_time:
+			first_datapoint_index += 1
+	if max_time is not None:
+		while activity_data[last_datapoint_index-1].passed_time > max_time:
+			last_datapoint_index -= 1
+
+	start_dist = activity_data[first_datapoint_index].dist
+	start_time = activity_data[first_datapoint_index].passed_time
+	start_rel_elevation = activity_data[first_datapoint_index].rel_elevation
+	start_cum_elevation = activity_data[first_datapoint_index].cum_elevation
+	for i in range(first_datapoint_index, last_datapoint_index):
+		datapoint = copy.deepcopy(activity_data[i])
+		datapoint.dist -= start_dist
+		datapoint.passed_time -= start_time
+		datapoint.rel_elevation -= start_rel_elevation
+		datapoint.cum_elevation -= start_cum_elevation
+		timeframe.append(datapoint)
+	return timeframe
+
 class RouteProfilePlotter(SubTask):
 	def __init__(self, activities:list, verbose=False):
 		self.activities = activities
@@ -381,7 +413,7 @@ class RouteProfilePlotter(SubTask):
 		cbar.set_ticks(color_ticks)
 		cbar.set_ticklabels(color_tick_labels)
 
-	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str=""):
+	def plot(self, x_axis_key:str, y_axis_key:str, color_axis_key:str="singular", basename:str="", timeframes:list=None):
 		plotdata = []
 		metadata = []
 
@@ -393,7 +425,10 @@ class RouteProfilePlotter(SubTask):
 		colormanager = CM.ColorManager(color_axis_key, self.activities)
 
 		for i in range(len(self.data)):
-			activity = self.data[i]
+			if timeframes is not None:
+				activity = cut_activity_to_timeframe(self.data[i], timeframes[i][0], timeframes[i][1])
+			else:
+				activity = self.data[i]
 			data = {}
 			data["xs"] = []
 			data["ys"] = []

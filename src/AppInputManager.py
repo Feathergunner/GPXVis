@@ -147,3 +147,25 @@ class AppInputManagerActivityData(AppInputManager):
 		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix)
 		self.finish_progress()
 		return self.outputfilepath
+
+class AppInputManagerRecordData(AppInputManagerActivityData):
+	def __init__(self):
+		AppInputManager.__init__(self, "AppInputManagerRecordData", 1)
+		self.axis_x_key = None
+		self.axis_y_key = None
+		self.timeframes = None
+
+	def set_timeframes(self, min_times:list, max_times:list):
+		if len(min_times) == len(max_times):
+			self.timeframes = [[min_times[i], max_times[i]] for i in range(len(min_times))]
+		else:
+			## todo: raise exception or print warning
+			return
+
+	def run_plotter(self):
+		rpp = RPP.RouteProfilePlotter(self.activities)
+		self.add_task_child(rpp)
+		rpp.parse_data()
+		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix, timeframes=self.timeframes)
+		self.finish_progress()
+		return self.outputfilepath

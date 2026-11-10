@@ -33,6 +33,7 @@ with app.app_context():
 aim_rmap = AIM.AppInputManagerRouteMap()
 aim_ta = AIM.AppInputManagerTourAnimation()
 aim_ad = AIM.AppInputManagerActivityData()
+aim_rd = AIM.AppInputManagerRecordData()
 
 global current_job
 current_job = None
@@ -391,6 +392,25 @@ def create_record_category():
 	return {
 		"status": "ok"
 	}
+
+def plot_record_data(recorddata_ids, axis_key_x:str, axis_key_y:str, key_color:str=None, filename_prefix:str=""):
+	records_and_activities = DBH.get_recorddata_and_activity_by_record_ids(recorddata_ids)
+	records = [rec_and_act[0] for rec_and_act in records_and_activities]
+	activities = [rec_and_act[1] for rec_and_act in records_and_activities]
+	timeframe_starts = [record.starttime for record in records]
+	timeframe_ends = [record.starttime+record.time for record in records]
+
+	aim_rd.set_activities(activities)
+	aim_rd.set_timeframes(timeframe_starts, timeframe_ends)
+	aim_rd.set_key_x(axis_key_x)
+	aim_rd.set_key_y(axis_key_y)
+	aim_rd.set_color_key(key_color)
+	aim_rd.set_filename_prefix(filename_prefix)
+
+	current_job = aim_rd
+	current_job.start_progress()
+	thread = threading.Thread(target=aim_rd.run_plotter)
+	thread.start()
 
 @app.route("/api/progress")
 def get_computation_progress():

@@ -436,6 +436,13 @@ def add_recorddata(
 		# record already exists!
 		return
 
+def get_recorddata_and_activity_by_record_ids(recorddata_ids:list):
+	records_and_activities = db.session.execute(
+		db.select(RecordData, Activity)
+			.join(Activity, Activity.id == RecordData.activity_id)
+			.where(RecordData.id.in_(recorddata_ids))).all()
+	return records_and_activities
+
 def get_recorddata_by_(
 		activity_ids:list=None,
 		recordtype_ids:list=None,
