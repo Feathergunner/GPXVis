@@ -13,35 +13,42 @@ const tableColumns = [
 		sortKey: "time",
 		label: "Time",
 		compare: (a, b) => a - b,
-        format: value => value
+		format: value => value
 	},
 	{
 		dataKey: "elevation_gain",
 		sortKey: "elevation_gain",
 		label: "Elevation Gain (m)",
 		compare: (a, b) => a - b,
-        format: value => value.toFixed(0)
+		format: value => value.toFixed(0)
 	},
 	{
 		dataKey: "elevation_delta",
 		sortKey: "elevation_delta",
 		label: "Elevation Delta (m)",
 		compare: (a, b) => a - b,
-        format: value => value.toFixed(0)
+		format: value => value.toFixed(0)
 	},
 	{
 		dataKey: "athlete_name",
 		sortKey: "athlete_name",
 		label: "Athlete",
 		compare: (a, b) => a - b,
-        format: value => value
+		format: value => value
 	},
 	{
 		dataKey: "date",
 		sortKey: "datetime",
 		label: "Date",
 		compare: (a, b) => new Date(a) - new Date(b),
-        format: value => value
+		format: value => value
+	},
+	{
+		dataKey: "activity_name",
+		sortKey: "activity_name",
+		label: "Activity",
+		compare: (a, b) => String(a).localeCompare(String(b)),
+		format: value => value
 	}
 ];
 
@@ -56,10 +63,6 @@ document.addEventListener("DOMContentLoaded", function() {
 	activityTypeSelect.addEventListener("change", updateRecordTypeSelect);
 	recordTypeSelect.addEventListener("change", renderTable);
 	rowLimitSetter.addEventListener("change", renderTable);
-
-	// Initial rendering
-    //let currentActivityType = "running"
-    //let currentRecordType = recordtypes[currentActivityType][0];
 
 	updateRecordTypeSelect();
 });
@@ -97,6 +100,7 @@ function renderTable() {
 
 	tableColumns.forEach(column => {
 		const th = document.createElement("th");
+		th.classList.add("clickable")
 		th.textContent = column.label;
 		// Sorting indicator
 		if (sortColumn === column.dataKey) {
@@ -136,10 +140,6 @@ function renderTable() {
 	// Generate table contents
 	rows.forEach(([name, values]) => {
 		const tr = document.createElement("tr");
-		// Add item name
-		//const nameCell = document.createElement("td");
-		//nameCell.textContent = name;
-		//tr.appendChild(nameCell);
 
 		// Add configured columns
 		tableColumns.forEach(column => {

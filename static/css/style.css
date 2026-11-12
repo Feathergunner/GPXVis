@@ -1,86 +1,86 @@
 :root {
 --bg: #202020;
---panel: #303030;
+--bg_alt: #252525;
+--panel: #404040;
 --panel_lowaccent: #111111;
 --panel_accent: #4fc3f7;
 --panel_warn: #ffc040;
---border: #404040;
+--border: #000000;
 --text: #e0e0e0;
 --text_warn: #ff0000;
 }
 
 /* Navigation */
 .navbar {
-    display: flex;
-    gap: 20px;
-    padding: 15px 25px;
-    background-color: var(--panel);
+	display: flex;
+	gap: 20px;
+	padding: 15px 25px;
+	background-color: var(--panel);
 }
 
 .navbar a {
-    color: white;
-    text-decoration: none;
+	color: white;
+	text-decoration: none;
 }
 
 .navbar a:hover {
-    text-decoration: underline;
+	text-decoration: underline;
 }
 
 /* Main content */
 .container {
-    /*max-width: 1200px;*/
-    margin: 30px auto;
-    padding: 0 20px;
+	/*max-width: 1200px;*/
+	margin: 30px auto;
+	padding: 0 20px;
 }
 
 body {
-font-family: Segoe UI, sans-serif;
-background: var(--bg);
-color: var(--text);
-padding: 20px;
+	font-family: Segoe UI, sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	padding: 20px;
 }
 
 .panel {
-background: var(--panel);
-border: 1px solid var(--border);
-border-radius: 10px;
-padding: 15px;
-margin: 15px;
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	padding: 15px;
+	margin: 15px;
 }
 
 .cleanpanel {
-background: var(--panel);
-border: none;
-border-radius: 10px;
-padding: 15px;
-margin-bottom: 15px;
+	background: var(--panel);
+	border: none;
+	border-radius: 10px;
+	padding: 15px;
+	margin-bottom: 15px;
 }
 
 .divrow {
-display:flex;
+	display:flex;
 }
 
 .floating {
-flex: 1;
+	flex: 1;
 }
 
 button {
-background: var(--panel_accent);
-color: black;
-border: none;
-border-radius: 6px;
-padding: 8px 14px;
-margin: 15px;
-cursor: pointer;
+	background: var(--panel_accent);
+	color: black;
+	border: none;
+	border-radius: 6px;
+	padding: 8px 14px;
+	margin: 15px;
+	cursor: pointer;
 }
 
-input,
-select {
-background: var(--panel);
-color: white;
-border: 1px solid var(--border);
-border-radius: 6px;
-padding: 8px;
+input, select {
+	background: var(--panel);
+	color: white;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 8px;
 }
 
 h1 {
@@ -92,7 +92,7 @@ h2 {
 }
 
 .bg_warning {
-    background-color: var(--panel_warn)
+	background-color: var(--panel_warn)
 }
 
 #map {
@@ -101,29 +101,42 @@ h2 {
 }
 
 #table-container {
-    margin-top: 20px;
-    overflow-x: auto;
+	margin-top: 20px;
+	overflow-x: auto;
+}
+
+.clickable{
+	cursor: pointer;
 }
 
 table {
-    background-color: var(--bg);
-    border-collapse: collapse;
-    width: 100%;
+	background-color: var(--bg);
+	border-collapse: collapse;
+	width: 100%;
 }
 
 th, td {
-    border: 1px solid var(--panel);
-    padding: 8px 12px;
-    text-align: right;
+	border: 1px solid var(--panel);
+	padding: 8px 12px;
+	text-align: right;
 }
 
 thead {
-    background-color: var(--panel_lowaccent);
+	background-color: var(--panel_lowaccent);
+}
+
+tbody tr:nth-child(even) {
+	background-color: var(--bg_alt);
+}
+
+tbody tr:hover {
+	background-color: var(--panel_lowaccent);
 }
 
 .checkbox-column {
 	width: 32px;
-    text-align: center;
-    padding: 2px;
-    white-space: nowrap;
+	text-align: center;
+	padding: 2px;
+	white-space: nowrap;
 }
+
