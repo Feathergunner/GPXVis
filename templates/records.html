@@ -1,20 +1,27 @@
 {% extends "base.html" %}
+{% from "components/filename_and_startbutton.html" import filename_and_startbutton %}
 
 {% block title %}Records{% endblock %}
 {% block content %}
-	<h1>Records</h1>
-	<div class="panel">
-		<h3>Create New Record Category</h3>
-		<div class="cleanpanel divrow">
-			{% include "components/select_type.html" %}
-			{% include "components/setup_record.html" %}
-		</div>
-		<button onclick="createRecordCategory()">Create record category</button>
+<h1>Records</h1>
+<div class="panel">
+	<h3>Create New Record Category</h3>
+	<div class="cleanpanel divrow">
+		{% include "components/select_type.html" %}
+		{% include "components/setup_record.html" %}
 	</div>
-	<div class="panel">
-		<h3>All Records</h3>
-		<div class="cleanpanel">
-			{% include "components/record_table.html" %}
-		</div>
+	<button onclick="createRecordCategory()">Create record category</button>
+</div>
+
+<div class="panel">
+	<h3>All Records</h3>
+	<div class="cleanpanel">
+		{% include "components/record_table.html" %}
 	</div>
+</div>
+
+{% include "components/select_plotparams.html" %}
+{{ filename_and_startbutton("Create record statistics plot", "runDataPlotterRecords()") }}
+{% include "components/progressbar.html" %}
+
 {% endblock %}

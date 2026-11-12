@@ -127,6 +127,8 @@ def records():
 		activity_types=_activity_types,
 		recorddata=records_by_type,
 		recordtypes=recordtypes_by_acttype,
+		axisdim_cont= AXIS_DIM_CONT,
+		axisdim_cat=AXIS_DIM_CAT,
 		default_setting=_defaults)
 
 @app.route("/settings")
@@ -385,19 +387,16 @@ def run_DataPlotter():
 		"total_progress": 0
 	})
 
-@app.route("/api/create_record_category", methods=["POST"])
-def create_record_category():
+@app.route("/api/runRecordPlotter", methods=["POST"])
+def run_RecordPlotter():
+	global current_job
 	data = request.get_json()
-	for activity_type in data.get("recordActivityType", ""):
-		DBH.add_recordtype(
-			activity_type,
-			data.get("recordDistance", ""),
-			data.get("recordName", ""))
-	return {
-		"status": "ok"
-	}
+	recorddata_ids = data.get("recorddata_ids", "")
+	axis_key_x = data.get("axis_x", "")
+	axis_key_y = data.get("axis_y", "")
+	key_color = data.get("color_key", "")
+	filename = data.get("filename", "")
 
-def plot_record_data(recorddata_ids, axis_key_x:str, axis_key_y:str, key_color:str=None, filename_prefix:str=""):
 	records_and_activities = DBH.get_recorddata_and_activity_by_record_ids(recorddata_ids)
 	records = [rec_and_act[0] for rec_and_act in records_and_activities]
 	activities = [rec_and_act[1] for rec_and_act in records_and_activities]
@@ -409,12 +408,29 @@ def plot_record_data(recorddata_ids, axis_key_x:str, axis_key_y:str, key_color:s
 	aim_rd.set_key_x(axis_key_x)
 	aim_rd.set_key_y(axis_key_y)
 	aim_rd.set_color_key(key_color)
-	aim_rd.set_filename_prefix(filename_prefix)
+	aim_rd.set_filename_prefix(filename)
 
 	current_job = aim_rd
 	current_job.start_progress()
 	thread = threading.Thread(target=aim_rd.run_plotter)
 	thread.start()
+	return jsonify({
+		"current_task": "DataPlotter",
+		"current_status": "started",
+		"total_progress": 0
+	})
+
+@app.route("/api/create_record_category", methods=["POST"])
+def create_record_category():
+	data = request.get_json()
+	for activity_type in data.get("recordActivityType", ""):
+		DBH.add_recordtype(
+			activity_type,
+			data.get("recordDistance", ""),
+			data.get("recordName", ""))
+	return {
+		"status": "ok"
+	}
 
 @app.route("/api/progress")
 def get_computation_progress():

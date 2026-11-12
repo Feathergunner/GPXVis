@@ -3,7 +3,7 @@
 	<table>
 		<thead>
 			<tr>
-				{% if addselectioncheckbox %}<td class="checkbox-column"></td>{% endif %}
+				{% if addselectioncheckbox %}<td class="column_checkbox"></td>{% endif %}
 				<td>Athlete</td>
 				<td>Type</td>
 				<td>Name</td>
@@ -16,7 +16,7 @@
 				<td>Avg. Pace</td>
 			</tr>
 			<tr>
-				{% if addselectioncheckbox %}<td class="checkbox-column"></td>{% endif %}
+				{% if addselectioncheckbox %}<td class="column_checkbox"></td>{% endif %}
 				<td></td>
 				<td></td>
 				<td></td>
@@ -33,7 +33,7 @@
 			{% for activity in activities %}
 			<tr>
 				{% if addselectioncheckbox %}
-				<td class="checkbox-column">
+				<td class="column_checkbox">
 					<input type="checkbox" id="radiobox_activity" name="cb_activity_id" value="{{ activity.id }}" {% if defaultchecked %}checked{% endif %}>
 				</td>
 				{% endif %}

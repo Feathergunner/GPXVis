@@ -221,6 +221,26 @@ async function runDataPlotter() {
 	monitorProgress();
 }
 
+async function runDataPlotterRecords(){
+	/*
+	Initiates the RouteProfilePlotter for record data
+	*/
+	const response = await fetch("/api/runRecordPlotter", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			recorddata_ids: getFromSelection("selectedRecords"),
+			axis_x: document.getElementById("form_select_axis_x").elements["radio_axis_x"].value,
+			axis_y: document.getElementById("form_select_axis_y").elements["radio_axis_y"].value,
+			color_key: document.getElementById("form_select_color_key").elements["color_key"].value,
+			filename: document.getElementById("input_filename").value
+		})
+	});
+	monitorProgress();
+}
+
 function selectAllActivities(select=true) {
 	checkboxes = document.getElementsByName('cb_activity_id');
  	for(var checkbox in checkboxes){

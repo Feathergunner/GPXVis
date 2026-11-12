@@ -110,6 +110,9 @@ function renderTable() {
 
 	// Create colgroup
 	const colgroup = document.createElement("colgroup");
+	const col_check = document.createElement("col");
+	col_check.style.width = "5ch";
+	colgroup.appendChild(col_check);
 	// Configured columns
 	tableColumns.forEach(column => {
 		const col = document.createElement("col");
@@ -125,6 +128,10 @@ function renderTable() {
 	}
 	fullTable.prepend(colgroup);
 
+	// checkbox column:
+	const th_check = document.createElement("th");
+	tableHeader.appendChild(th_check);
+	
 	// data columns:
 	tableColumns.forEach(column => {
 		const th = document.createElement("th");
@@ -168,6 +175,14 @@ function renderTable() {
 	// Generate table contents
 	rows.forEach(([name, values]) => {
 		const tr = document.createElement("tr");
+		// checkbox:
+		const checkboxCell = document.createElement("td");
+		const checkbox = document.createElement("input");
+		checkbox.type = "checkbox";
+		checkbox.value = values["id"];
+		checkbox.name = "selectedRecords";
+		checkboxCell.appendChild(checkbox);
+		tr.append(checkboxCell);
 
 		// Add configured columns
 		tableColumns.forEach(column => {
@@ -186,4 +201,12 @@ function renderTable() {
 		});
 		tableBody.appendChild(tr);
 	});
+}
+
+function selectAllRecords(select=true) {
+	// Selects/Deselects all current checkboxes in the records table
+	checkboxes = document.getElementsByName('selectedRecords');
+ 	for(var checkbox in checkboxes){
+		checkboxes[checkbox].checked = select;
+ 	}
 }

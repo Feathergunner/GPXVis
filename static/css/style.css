@@ -134,7 +134,7 @@ tbody tr:hover {
 	background-color: var(--panel_lowaccent);
 }
 
-.checkbox-column {
+.column_checkbox {
 	width: 32px;
 	text-align: center;
 	padding: 2px;
