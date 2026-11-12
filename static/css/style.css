@@ -123,6 +123,7 @@ th, td {
 
 thead {
 	background-color: var(--panel_lowaccent);
+    text-align: center;
 }
 
 tbody tr:nth-child(even) {
@@ -140,3 +141,10 @@ tbody tr:hover {
 	white-space: nowrap;
 }
 
+#tableRecords {
+    table-layout: fixed;
+}
+
+.leftalign {
+    text-align: left;
+}

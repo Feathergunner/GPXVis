@@ -13,42 +13,51 @@ const tableColumns = [
 		sortKey: "time",
 		label: "Time",
 		compare: (a, b) => a - b,
-		format: value => value
+		format: value => value,
+		colwidth: "15ch"
 	},
 	{
 		dataKey: "elevation_gain",
 		sortKey: "elevation_gain",
-		label: "Elevation Gain (m)",
+		label: "Elevation Gain",
+		dataSuffix: " m",
 		compare: (a, b) => a - b,
-		format: value => value.toFixed(0)
+		format: value => value.toFixed(0),
+		colwidth: "20ch"
 	},
 	{
 		dataKey: "elevation_delta",
 		sortKey: "elevation_delta",
-		label: "Elevation Delta (m)",
+		label: "Elevation Delta",
+		dataSuffix: " m",
 		compare: (a, b) => a - b,
-		format: value => value.toFixed(0)
-	},
-	{
-		dataKey: "athlete_name",
-		sortKey: "athlete_name",
-		label: "Athlete",
-		compare: (a, b) => a - b,
-		format: value => value
-	},
-	{
-		dataKey: "date",
-		sortKey: "datetime",
-		label: "Date",
-		compare: (a, b) => new Date(a) - new Date(b),
-		format: value => value
+		format: value => value.toFixed(0),
+		colwidth: "20ch"
 	},
 	{
 		dataKey: "activity_name",
 		sortKey: "activity_name",
 		label: "Activity",
 		compare: (a, b) => String(a).localeCompare(String(b)),
-		format: value => value
+		format: value => value,
+		styleclasses: ["leftalign"]
+	},
+	{
+		dataKey: "date",
+		sortKey: "datetime",
+		label: "Date",
+		compare: (a, b) => new Date(a) - new Date(b),
+		format: value => value,
+		colwidth: "25ch"
+	},
+	{
+		dataKey: "athlete_name",
+		sortKey: "athlete_name",
+		label: "Athlete",
+		compare: (a, b) => a - b,
+		format: value => value,
+		colwidth: "30ch",
+		styleclasses: ["leftalign"]
 	}
 ];
 
@@ -91,6 +100,7 @@ function renderTable() {
 	const currentRecordType = recordTypeSelect.value;
 	const rowLimit = rowLimitSetter.value;
 	const selectedData = Object.values(recorddata[currentActivityType][currentRecordType]);
+	const fullTable = document.getElementById("tableRecords");
 	const tableHeader = document.getElementById("tableRecordsHead");
 	const tableBody = document.getElementById("tableRecordsBody");
 
@@ -98,6 +108,24 @@ function renderTable() {
 	tableHeader.innerHTML = "";
 	tableBody.innerHTML = "";
 
+	// Create colgroup
+	const colgroup = document.createElement("colgroup");
+	// Configured columns
+	tableColumns.forEach(column => {
+		const col = document.createElement("col");
+		if (column.colwidth) {
+			col.style.width = column.colwidth;
+		}
+		colgroup.appendChild(col);
+	});
+	// Replace existing colgroup
+	const oldColgroup = fullTable.querySelector("colgroup");
+	if (oldColgroup) {
+		oldColgroup.remove();
+	}
+	fullTable.prepend(colgroup);
+
+	// data columns:
 	tableColumns.forEach(column => {
 		const th = document.createElement("th");
 		th.classList.add("clickable")
@@ -144,7 +172,16 @@ function renderTable() {
 		// Add configured columns
 		tableColumns.forEach(column => {
 			const td = document.createElement("td");
-			td.textContent = column.format(values[column.dataKey]);
+			if (column.styleclasses){
+				column.styleclasses.forEach(styleclass => {
+					td.classList.add(styleclass);
+				});
+			}
+			let dataContent = column.format(values[column.dataKey]);
+			if (column.dataSuffix){
+				dataContent = dataContent+column.dataSuffix
+			}
+			td.textContent = dataContent;
 			tr.appendChild(td);
 		});
 		tableBody.appendChild(tr);
