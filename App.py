@@ -109,13 +109,16 @@ def records():
 	_records = DBH.get_recorddata_by_()
 	_defaults = DBH.get_default_settings()
 
+	recordtypes_by_acttype = {}
 	records_by_type = {}
 	for record in _records:
 		r_dict = record.to_dict
 		if r_dict["activitytype_name"] not in records_by_type:
 			records_by_type[r_dict["activitytype_name"]] = {}
+			recordtypes_by_acttype[r_dict["activitytype_name"]] = []
 		if r_dict["rtype_name"] not in records_by_type[r_dict["activitytype_name"]]:
 			records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]] = []
+			recordtypes_by_acttype[r_dict["activitytype_name"]].append(r_dict["rtype_name"])
 		records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]].append(r_dict)
 	for atype in records_by_type:
 		records_by_type[atype] = dict(sorted(records_by_type[atype].items(), key=lambda item: item[1][0]["rtype_distance"]))
@@ -123,6 +126,7 @@ def records():
 		"records.html",
 		activity_types=_activity_types,
 		recorddata=records_by_type,
+		recordtypes=recordtypes_by_acttype,
 		default_setting=_defaults)
 
 @app.route("/settings")
