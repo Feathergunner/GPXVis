@@ -1,3 +1,4 @@
+{% block content %}
 <div class="cleanpanel">
 <div class="divrow">
 	<div class="panel floating">
@@ -6,14 +7,21 @@
 	<div class="panel floating">
 		<h3>Map Settings</h3>
 		<p id="coords">
-		No starting position selected.
+			<label>Latitude:</label>
+			<input id="inputLatitude" type="Number" step="any", onchange="updateLatLon()"><br><br>
+			<label>Longitude:</label>
+			<input id="inputLongitude" type="Number" step="any", onchange="updateLatLon()">
 		</p>
 		<p>Map detail level:</p>
-		<input type="number" id="zoom", value="8" onchange="on_zoom_input_change(this.value)">
+		<input type="number" id="zoom", value="8" onchange="onZoomInputChange(this.value)">
 		<br>
-		Maximum distance of start from selected position (km):
-		<br>
+		<p>Maximum distance of start from selected position (km):</p>
 		<input type="number" id="activity_range_selection", value="5">
 	</div>
 </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/mapHandler.js') }}" defer></script>
+{% endblock %}

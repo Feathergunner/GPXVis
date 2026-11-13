@@ -1,10 +1,4 @@
 
-let latitude = -1;
-let longitude = -1;
-let mapzoom = 8;
-let map;
-let range = 5;
-
 function getFromSelection(selectionFieldName){
 	/*
 	get list of values from a set of checkboxes
@@ -322,79 +316,11 @@ async function setDefaultSettings(){
 	});
 }
 
-async function initializeMap(){
-	/*
-	Handles the map tool for GPS location selection.
-	*/
-	let marker = null;
-	// ask for default map setting parameters:
-	const response = await fetch("/api/get_default_map_parameter");
-	const data = await response.json();
-	default_lat = data.default_latitude
-	default_lon = data.default_longitude
-	if (default_lat > 0){
-		latitude = default_lat;
-	}
-	if (default_lon > 0){
-		longitude = default_lon;
-	}
-
-	// open map
-	if (default_lat > 0 && default_lon > 0){
-		// use location from default setting
-		map = L.map("map").setView([latitude, longitude],mapzoom);
-		// also place a marker:
-		marker = set_marker_on_map(marker, latitude, longitude)
-	}else{
-		// no default setting, focus map on Berlin
-		map = L.map("map").setView([52.52, 13.405],mapzoom);
-		// place no marker in this case
-	}
-
-	// OpenStreetMap Layer
-	L.tileLayer(
-		"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-		{
-			attribution: "&copy; OpenStreetMap contributors"
-		}
-	).addTo(map);
-
-	// handle mouse click on map
-	map.on("click", function(event) {
-		const lat = event.latlng.lat;
-		const lng = event.latlng.lng;
-		latitude = lat
-		longitude = lng
-		marker = set_marker_on_map(marker, lat, lng)
-	});
-	map.on("zoom", function(event) {
-		const zoom = map.getZoom();
-		mapzoom = zoom;
-		document.getElementById("zoom").value = mapzoom;
-	})
-}
-
-function set_marker_on_map(current_marker, lat, lng){
-	// remove existing marker
-	if (current_marker !== null) {
-		map.removeLayer(current_marker);
-	}
-	// add new marker
-	new_marker = L.marker([lat, lng]).addTo(map);
-	// update text label:
-	document.getElementById("coords").innerText = "Starting position: " + `Lat: ${lat.toFixed(5)}, ` + `Lng: ${lng.toFixed(5)}`;
-	return new_marker
-}
-
-function on_zoom_input_change(zoom){
-	map.setZoom(zoom);
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-	const mapdiv = document.getElementById("map");
-	if (mapdiv) {
-		initializeMap()
-	}
+	//const mapdiv = document.getElementById("map");
+	//if (mapdiv) {
+	//	initializeMap()
+	//}
 	const date_range_max_selector = document.getElementById("inputDateMax");
 	if (date_range_max_selector) {
 		var maxDate = new Date();
