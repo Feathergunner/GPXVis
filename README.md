@@ -51,7 +51,11 @@ python 3.10-ish with packages:
 
 and ffmpeg (to generate the animations).
 
-## Future Features
+## Known Bugs
+- [ ] Recods parsing not always correct.
+- [ ] Interval of Colorbar in plots not always correct. 
+
+## Future Features / ToDos
 - [ ] Improve maps:
   - [ ] Make map margin (around plotted route) equal in all directions.
   - [ ] Labels for maps.
@@ -74,6 +78,11 @@ and ffmpeg (to generate the animations).
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
 - [ ] Build a package with a straightforward-to-use installer.
+- [x] Overview Page for Activities
+- [ ] Improve Activity Page:
+  - [ ] Preview image of activity on map (Generate preview image during GPX-file upload).
+  - [ ] Directly plot tour animation from activity view.
+  - [ ] Link from other pages to activity view wherever activities are listed.
 - [x] Database version tracking, to allow future database extensions.
 - [x] Labels for animations.
 - [x] More options for creating animations (multiple activities at once, zoomed-in map).
