@@ -1,10 +1,25 @@
-{% from "components/select_plotaxis_dimension.html" import select_plotaxis_dimension %}
-
+{% block content %}
 <div class="cleanpanel">
 	<h2>Plot Specification</h2>
+	<label for="select_plottype">Select plot type:</label>
+	<select id="select_plottype">
+		<option value="Lineplot">Lineplot</option>
+		<option value="Scatterplot">Scatterplot</option>
+	</select>
 	<div class="divrow">
-		{{ select_plotaxis_dimension("x", axisdim_cont, axisdim_cat) }}
-		{{ select_plotaxis_dimension("y", axisdim_cont, axisdim_cat) }}
-		{% include "components/select_color_key.html" %}
+		<div id="divAxis_x" class="panel floating"></div>
+		<div id="divAxis_y" class="panel floating"></div>
+		<div id="divAxis_c" class="panel floating"></div>
 	</div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const axisdim_cont = {{ axisdim_cont | tojson }};
+    const axisdim_cat = {{ axisdim_cat | tojson }};
+    const axisdim_color = {{ axisdim_color | tojson }};
+</script>
+
+<script src="{{ url_for('static', filename='js/select_plotparams.js') }}" defer></script>
+{% endblock %}

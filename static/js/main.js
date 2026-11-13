@@ -212,9 +212,9 @@ async function runDataPlotter() {
 			date_min: document.getElementById("inputDateMin").value,
 			date_max: document.getElementById("inputDateMax").value,
 			use_unkown_date: document.getElementById("checkUnknownDate").checked,
-			axis_x: document.getElementById("form_select_axis_x").elements["radio_axis_x"].value,
-			axis_y: document.getElementById("form_select_axis_y").elements["radio_axis_y"].value,
-			color_key: document.getElementById("form_select_color_key").elements["color_key"].value,
+			axis_x: document.getElementById("form_select_axis_x").elements["key_x"].value,
+			axis_y: document.getElementById("form_select_axis_y").elements["key_y"].value,
+			color_key: document.getElementById("form_select_axis_c").elements["key_c"].value,
 			filename: document.getElementById("input_filename").value
 		})
 	});
@@ -232,9 +232,9 @@ async function runDataPlotterRecords(){
 		},
 		body: JSON.stringify({
 			recorddata_ids: getFromSelection("selectedRecords"),
-			axis_x: document.getElementById("form_select_axis_x").elements["radio_axis_x"].value,
-			axis_y: document.getElementById("form_select_axis_y").elements["radio_axis_y"].value,
-			color_key: document.getElementById("form_select_color_key").elements["color_key"].value,
+			axis_x: document.getElementById("form_select_axis_x").elements["key_x"].value,
+			axis_y: document.getElementById("form_select_axis_y").elements["key_y"].value,
+			color_key: document.getElementById("form_select_axis_c").elements["key_c"].value,
 			filename: document.getElementById("input_filename").value
 		})
 	});

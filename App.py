@@ -15,7 +15,7 @@ from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
 
 from org import GPX_DIR
-from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT
+from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT, AXIS_DOM_COLOR
 
 app = Flask(__name__)
 # init database:
@@ -77,6 +77,7 @@ def statistics():
 		activity_types=_activity_types,
 		axisdim_cont= AXIS_DIM_CONT,
 		axisdim_cat=AXIS_DIM_CAT,
+		axisdim_color=AXIS_DOM_COLOR,
 		default_setting=_defaults)
 
 @app.route("/maps")
@@ -129,6 +130,7 @@ def records():
 		recordtypes=recordtypes_by_acttype,
 		axisdim_cont= AXIS_DIM_CONT,
 		axisdim_cat=AXIS_DIM_CAT,
+		axisdim_color=AXIS_DOM_COLOR,
 		default_setting=_defaults)
 
 @app.route("/settings")

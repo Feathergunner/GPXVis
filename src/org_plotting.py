@@ -48,3 +48,11 @@ AXIS_DIM_CAT = [
 	{"value" : "total duration", "label": "Duration"},
 	{"value" : "total elevation", "label": "Total Elevation"}
 ]
+
+AXIS_DOM_COLOR = [
+	{"value" : "singular", "label" : "Everything in the same color"},
+	{"value" : "activity" , "label" : "Activity"},
+	{"value" : "athlete" , "label" : "Athlete"},
+	{"value" : "activitytype", "label" : "Activity Type"},
+	{"value" : "date", "label" : "Date"}
+]
