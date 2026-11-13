@@ -65,11 +65,12 @@ and ffmpeg (to generate the animations).
 - [ ] Track personal records on activities:
   - [x] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km).
   - [ ] On custom segments (create segments from gpx-files).
+  - [ ] Records w.r.t. elevation gain (e.g. fastest time for 100m of elevation, independent of distance)
   - [ ] Display segments on maps.
-  - [x] Improve record list: restrict displayed records, enable sorting.
   - [ ] Records considering the full activity: longest distance, most elevation gain, longest duration
-  - [ ] Plot record statistics.
   - [ ] Parse activities for records during upload to database.
+  - [x] Improve record list: restrict displayed records, enable sorting.
+  - [x] Plot record graphs.
 - [ ] Progress bar for uploading activities.
 - [ ] Support for more gpx-annotations, like heartrate.
 - [ ] Build a package with a straightforward-to-use installer.
