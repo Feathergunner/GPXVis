@@ -110,10 +110,11 @@ function renderTable() {
 
 	// Create colgroup
 	const colgroup = document.createElement("colgroup");
+	// Column configuration for checkbox-column:
 	const col_check = document.createElement("col");
 	col_check.style.width = "5ch";
 	colgroup.appendChild(col_check);
-	// Configured columns
+	// Configure remaining columns:
 	tableColumns.forEach(column => {
 		const col = document.createElement("col");
 		if (column.colwidth) {

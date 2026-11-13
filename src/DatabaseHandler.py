@@ -179,6 +179,9 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 	db.session.add(new_activity)
 	db.session.commit()
 
+def get_all_activity_ids_by_date():
+	return db.session.execute(db.select(Activity.id).order_by(Activity.datetime)).scalars().all()
+
 def get_activities_by_ids(activity_ids:list):
 	activities = db.session.execute(db.select(Activity).where(Activity.id.in_(activity_ids))).scalars().all()
 	return activities

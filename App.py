@@ -104,6 +104,13 @@ def animations():
 		activity_types=_activity_types,
 		default_setting=_defaults)
 
+@app.route("/activity")
+def activity():
+	return render_template(
+		"activity.html",
+		activity_ids=DBH.get_all_activity_ids_by_date()
+		)
+
 @app.route("/records")
 def records():
 	_activity_types = DBH.get_all_activitytypes()
@@ -263,6 +270,16 @@ def get_activities():
 	data = request.get_json()
 	activities = get_activities_from_query(data, False)
 	return jsonify(activities)
+
+@app.route("/api/get_activity_and_records_by_activity_id", methods=["POST"])
+def get_activity_and_records_by_activity_id():
+	'''
+	Assumes the passed id is valid: does not check for exepctions or empty returns.
+	'''
+	requested_id = request.get_json().get("activity_id", "")
+	activity = DBH.get_activities_by_ids([requested_id])[0].to_dict
+	records = [r.to_dict for r in DBH.get_recorddata_by_(activity_ids=[activity["id"]])]
+	return jsonify({"activity" : activity, "records" : records})
 
 @app.route("/api/get_activities_at_coordinate", methods=["POST"])
 def get_activities_at_coordinate():

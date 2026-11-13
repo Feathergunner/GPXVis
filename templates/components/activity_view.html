@@ -1,0 +1,32 @@
+{% block content %}
+<div id="activity_view" class="cleanpanel">
+	<div class="panel divrow">
+		<button onclick="get_previous_activity()" class="floating_small">&larr; Previous Activity</button>
+		<h2 id="activityHeader" class="floating">Activity name (activity type) by Athlete name</h2>
+		<button onclick="get_next_activity()" class="floating_small">Next Activity &rarr;</button>
+	</div>
+	<div class="panel divrow" id="panel_data_table">
+		<div class="cleanpanel floating">
+			<h3>Activity Data</h3>
+			<table id="activityDataTable">
+			</table>
+		</div>
+		<div class="cleanpanel floating">
+			<h3>Activity Records</h3>
+			<table id="activityRecordsTable">
+			</table>
+		</div>
+		<div class="cleanpanel floating" id="panel_preview_image">
+			<h3>Activity Preview</h3>
+			<p>Future Feature!</p>
+		</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const activity_ids = {{ activity_ids | tojson }};
+</script>
+
+<script src="{{ url_for('static', filename='js/activity_view.js') }}" defer></script>
+{% endblock %}
