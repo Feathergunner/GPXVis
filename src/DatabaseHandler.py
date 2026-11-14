@@ -96,6 +96,7 @@ class Activity(db.Model):
 	elevation = db.Column(db.Float)
 	start_latitude = db.Column(db.Float)
 	start_longitude = db.Column(db.Float)
+	imagepath_preview = db.Column(db.String, nullable=True)
 
 	@property
 	def to_dict(self):
@@ -133,6 +134,8 @@ class Activity(db.Model):
 			actdict["duration_hms"] = format_time_hours(self.duration, include_seconds=True)
 			actdict["speed"] = construct_speed_string(self.duration, self.distance)
 			actdict["pace"] = construct_pace_string(self.duration, self.distance)
+		if self.imagepath_preview is not None:
+			actdict["imagepath_preview"] = self.imagepath_preview
 		return actdict
 
 def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, athlete_name:str=""):

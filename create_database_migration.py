@@ -5,3 +5,4 @@ with app.app_context():
 	#alembic.revision("Add initial database tables")
 	#alembic.revision("Add tables for record data")
 	#alembic.revision("Add additional rows in record data table")
+	#alembic.revision("Add preview image path to activity data table")
