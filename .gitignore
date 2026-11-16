@@ -6,6 +6,8 @@ instance
 *.png
 *.mp4
 *.gif
+backup*
+test*
 !examples_and_screenshots/example_*.png
 !examples_and_screenshots/example_*.gif
 !examples_and_screenshots/screenshot_*.png
