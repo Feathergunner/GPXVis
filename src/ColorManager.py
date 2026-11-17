@@ -11,6 +11,9 @@ COLORS_CATEGORICAL = LINECOLORS
 
 class ColorManager():
 	def __init__(self, color_key:str, activities:list):
+		'''
+		activities: list of DBH.ActivityDTO
+		'''
 		self.color_key = color_key
 		self.is_categorical = self.color_key in COLOR_KEYS_CATEGORICAL
 
@@ -40,35 +43,35 @@ class ColorManager():
 			# find all athlete_ids, assign each a unique color_id
 			number_of_athletes = 0
 			for activity in activities:
-				if activity["athlete_id"] not in self.athlete_id_to_color_id:
-					self.athlete_id_to_color_id[activity["athlete_id"]] = number_of_athletes
+				if activity.athlete_id not in self.athlete_id_to_color_id:
+					self.athlete_id_to_color_id[activity.athlete_id] = number_of_athletes
 					number_of_athletes += 1
 
 		elif self.color_key == "activitytype":
 			# find all activitytype_ids, assign each a unique color_id
 			number_of_types = 0
 			for activity in activities:
-				if activity["activitytype_id"] not in self.type_id_to_color_id:
-					self.type_id_to_color_id[activity["activitytype_id"]] = number_of_types
+				if activity.activitytype_id not in self.type_id_to_color_id:
+					self.type_id_to_color_id[activity.activitytype_id] = number_of_types
 					number_of_types += 1
 
 		elif self.color_key == "activity":
 			# assign unique color id to each activity:
 			# (note that actual colors are not unique, since only colors from COLORS_CATEGORICAL are used)
-			self.activity_id_to_color_id = {activities[k]["id"] : k for k in range(len(activities))}
+			self.activity_id_to_color_id = {activities[k].id : k for k in range(len(activities))}
 
 		elif self.color_key == "date":
 			self.colormap_name = "viridis"
 			# find range of values:
 			for activity in activities:
 				if self.min_value is None:
-					self.min_value = activity["datetime"].date()
-				elif activity["datetime"].date() < self.min_value:
-					self.min_value = activity["datetime"].date()
+					self.min_value = activity.datetime.date()
+				elif activity.datetime.date() < self.min_value:
+					self.min_value = activity.datetime.date()
 				if self.max_value is None:
-					self.max_value = activity["datetime"].date()
-				elif activity["datetime"].date() > self.max_value:
-					self.max_value = activity["datetime"].date()
+					self.max_value = activity.datetime.date()
+				elif activity.datetime.date() > self.max_value:
+					self.max_value = activity.datetime.date()
 			tick_stepsize = (self.max_value.toordinal()-self.min_value.toordinal())/10
 			self.continuous_ticks = np.arange(self.min_value.toordinal(), self.max_value.toordinal()+tick_stepsize, tick_stepsize)
 			self.continuous_ticks_labels = [datetime.date.fromordinal(int(t)) for t in self.continuous_ticks]
@@ -93,16 +96,16 @@ class ColorManager():
 
 	def get_color(self, datapoint):
 		if self.color_key == "athlete":
-			return self._get_color_categorical(self.athlete_id_to_color_id[datapoint["athlete_id"]])
+			return self._get_color_categorical(self.athlete_id_to_color_id[datapoint.athlete_id])
 
 		elif self.color_key == "activitytype":
-			return self._get_color_categorical(self.type_id_to_color_id[datapoint["activitytype_id"]])
+			return self._get_color_categorical(self.type_id_to_color_id[datapoint.activitytype_id])
 
 		elif self.color_key == "activity":
-			return self._get_color_categorical(self.activity_id_to_color_id[datapoint["id"]])
+			return self._get_color_categorical(self.activity_id_to_color_id[datapoint.id])
 
 		elif self.color_key == "date":
-			return self._get_color_continuous(datapoint["datetime"].date())
+			return self._get_color_continuous(datapoint.datetime.date())
 
 		elif self.color_key == "singular":
 			return "red"

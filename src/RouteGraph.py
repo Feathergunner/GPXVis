@@ -488,8 +488,8 @@ class RouteGraphConstructor(SubTask):
 	def get_routegraph(self):
 		for i in range(len(self.activities)):
 			#if check_gps_range(self.activities[i]["start_latitude"], self.activities[i]["start_longitude"], self.lat_ref, self.lon_ref, self.delta_km):
-			print ("load gpx from "+self.activities[i]["filepath"])
-			(gpxdata, metadata) = load_gpx_file(self.activities[i]["filepath"])
+			#print ("load gpx from "+self.activities[i].filepath)
+			(gpxdata, metadata) = load_gpx_file(self.activities[i].filepath)
 			self._add_subgraph_from_gpx(gpxdata)
 		self.progress += 1
 		self.rg.simplify_graph()

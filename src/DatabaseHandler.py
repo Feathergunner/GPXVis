@@ -54,21 +54,32 @@ def delete_athletes(athlete_ids:list) -> None:
 		db.session.delete(athlete)
 	db.session.commit()
 
+def get_athlete_by_name(name:str) -> Athlete:
+	return db.session.execute(db.select(Athlete).where(Athlete.name == name)).scalar_one_or_none()
+
 ### ACTIVITY TYPES ###
 
 class ActivityType(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String, nullable=False, unique=True)
 
-def add_activitytype(name:str):
-	existing_activitytype = db.session.execute(db.select(ActivityType).filter_by(name=name)).scalar_one_or_none()
+def ensure_activitytype_exists(activitytypename:str):
+	'''
+	Checks if activitytype with specified name exists.
+	If not, adds activitytype to the database.
+
+	returns id of activitytype
+	'''
+	existing_activitytype = ActivityType.query.filter_by(name=activitytypename).first()
+	#existing_activitytype_id = db.session.execute(db.select(ActivityType.id).where(ActivityType.name == name)).scalar_one_or_none()
 
 	if existing_activitytype is None:
-		activity = ActivityType(name=name)
+		new_activitytype = ActivityType(name=name)
 		db.session.add(activity)
 		db.session.commit()
+		return new_activitytype.id
 	else:
-		print("Error: ActivityType with name:",name,"already exists.")
+		return existing_activitytype.id
 
 def get_all_activitytypes():
 	types = db.session.execute(db.select(ActivityType).order_by(ActivityType.id)).scalars()
@@ -94,10 +105,13 @@ class Activity(db.Model):
 	distance = db.Column(db.Float)
 	duration = db.Column(db.Float)
 	elevation = db.Column(db.Float)
+	#start_gpx_index = db.Column(db.Integer, nullable=True)
 	start_latitude = db.Column(db.Float)
 	start_longitude = db.Column(db.Float)
 	imagepath_preview = db.Column(db.String, nullable=True)
 
+
+	'''
 	@property
 	def to_dict(self):
 		actdict = {
@@ -115,8 +129,8 @@ class Activity(db.Model):
 			"start_latitude" : self.start_latitude,
 			"start_longitude" : self.start_longitude,
 			# pre-formatted data:
-			"type_name" : db.session.execute(db.select(ActivityType).filter_by(id=self.activitytype_id)).scalar_one_or_none().name,
-			"athlete_name" : db.session.execute(db.select(Athlete).filter_by(id=self.athlete_id)).scalar_one_or_none().name,
+			"type_name" : db.session.execute(db.select(ActivityType.name).filter_by(id=self.activitytype_id)).scalar_one_or_none(),
+			"athlete_name" : db.session.execute(db.select(Athlete.name).filter_by(id=self.athlete_id)).scalar_one_or_none(),
 			"distance_km" : round(self.distance/1000,1),
 			"duration_hms" : "--",
 			"speed" : "--", # avg. speed in km/h
@@ -137,6 +151,74 @@ class Activity(db.Model):
 		if self.imagepath_preview is not None:
 			actdict["imagepath_preview"] = self.imagepath_preview
 		return actdict
+	'''
+
+class ActivityDTO():
+	def __init__(self, activity:Activity):
+		# original data:
+		self.id = activity.id
+		self.activitytype_id = activity.activitytype_id
+		self.athlete_id = activity.athlete_id
+		self.name = activity.name
+		self.filepath = activity.filepath
+		self.datetime = activity.datetime
+		self.distance = round(activity.distance)
+		self.duration = activity.duration
+		self.elevation = round(activity.elevation) # total elevation gain
+		self.minimum_elevation = -1 # lowest point during activity
+		self.maximum_elevation = -1 # highest point during activity
+		self.start_latitude = activity.start_latitude
+		self.start_longitude = activity.start_longitude
+		#self.start_gpx_index = activity.start_gpx_index
+		# additional, pre-formatted data:
+		self.type_name = db.session.execute(db.select(ActivityType.name).filter_by(id=activity.activitytype_id)).scalar_one_or_none()
+		self.athlete_name = db.session.execute(db.select(Athlete.name).filter_by(id=activity.athlete_id)).scalar_one_or_none()
+		self.distance_km = round(self.distance/1000,1)
+		self.startpos_str = f"({self.start_latitude:.3f},{self.start_longitude:.3f})"
+		if activity.datetime is not None:
+			date = activity.datetime.date()
+			self.date = f"{date.day:02d}.{date.month:02d}.{date.year:d}"
+			time = activity.datetime.time()
+			self.time = f"{time.hour:02d}:{time.minute:02d}"
+		else:
+			self.date = "unknown"
+			self.time = "unknown"
+		if activity.duration > 0:
+			self.duration_hms = format_time_hours(self.duration, include_seconds=True)
+			self.speed = construct_speed_string(self.duration, self.distance)
+			self.pace = construct_pace_string(self.duration, self.distance)
+		else:
+			self.duration_hms = "--"
+			self.speed = "--" # avg. speed in km/h
+			self.pace = "--" # avg. pace in min/km
+		self.imagepath_preview = activity.imagepath_preview
+
+	def to_dict(self) -> dict:
+		return {
+			"id" : self.id,
+			"activitytype_id" : self.activitytype_id,
+			"athlete_id" : self.athlete_id,
+			"name" : self.name,
+			"filepath" : self.filepath,
+			"datetime" : self.datetime,
+			"distance" : self.distance,
+			"duration" : self.duration,
+			"elevation" : self.elevation, 
+			"minimum_elevation" : self.minimum_elevation,
+			"maximum_elevation" : self.maximum_elevation,
+			"start_latitude" : self.start_latitude,
+			"start_longitude" : self.start_longitude,
+			"type_name" : self.type_name,
+			"athlete_name" : self.athlete_name,
+			"distance_km" : self.distance_km,
+			"duration_hms" : self.duration_hms,
+			"speed" : self.speed,
+			"pace" : self.pace,
+			"date" : self.date,
+			"time" : self.time,
+			"startpos_str" : self.startpos_str,
+			"imagepath_preview" : self.imagepath_preview
+		}
 
 def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, athlete_name:str=""):
 	# check if athlete is in db & get id:
@@ -157,11 +239,7 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 	# check if activity_type is in db & get id:
 	if activity_type_name is None:
 		activity_type_name = metadata["type"]
-	activitytype = ActivityType.query.filter_by(name=activity_type_name).first()
-	if activitytype is None:
-		activitytype = ActivityType(name = activity_type_name)
-		db.session.add(activitytype)
-		db.session.flush()
+	activitytype_id = ensure_activitytype_exists(activity_type_name)
 
 	_datetime = None
 	if not metadata["datetime"] == "unknown":
@@ -169,7 +247,7 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 
 	# build database entry:
 	new_activity = Activity(
-		activitytype_id = activitytype.id,
+		activitytype_id = activitytype_id,
 		athlete_id = athlete.id,
 		name = metadata["name"],
 		filepath = filepath,
@@ -181,15 +259,18 @@ def add_activity(filepath, activity_type_name:str=None, athlete_id:int=None, ath
 		start_longitude = metadata["lon"])
 	db.session.add(new_activity)
 	db.session.commit()
+	return ActivityDTO(new_activity)
 
 def get_all_activity_ids_by_date():
-	return db.session.execute(db.select(Activity.id).order_by(Activity.datetime)).scalars().all()
+	activities = db.session.execute(db.select(Activity.id).order_by(Activity.datetime)).scalars().all()
+	return [activity for activity in activities]
 
 def get_activities_by_ids(activity_ids:list):
 	activities = db.session.execute(db.select(Activity).where(Activity.id.in_(activity_ids))).scalars().all()
-	return activities
+	return [ActivityDTO(activity) for activity in activities]
 
 def get_activities_by_(
+		activity_ids:list = None,
 		athlete_ids:list = None,
 		activitytype_ids:list = None,
 		date_min:datetime.datetime = None,
@@ -202,6 +283,11 @@ def get_activities_by_(
 	'''
 
 	query = db.select(Activity)
+
+	# restrict by activity_id:
+	if activity_ids is not None:
+		query = query.where(
+			Activity.id.in_(activity_ids))
 
 	# restrict by acthlte:
 	if athlete_ids is not None:
@@ -223,20 +309,24 @@ def get_activities_by_(
 			query = query.where(
 				Activity.datetime >= date_min, Activity.datetime < date_max)
 	activities = db.session.execute(query.order_by(Activity.datetime)).scalars().all()
-	return activities
+	return [ActivityDTO(activity) for activity in activities]
 
 def delete_activities(activity_ids:list) -> None:
-	activities_to_delete = get_activities_by_ids(activity_ids)
+	# find activities:
+	activities_to_delete = db.session.execute(db.select(Activity).where(Activity.id.in_(activity_ids)))
 	for activity in activities_to_delete:
 		db.session.delete(activity)
+	# find corresponding recorddata:
+	recorddata_to_delete = db.session.execute(db.select(RecordData).where(RecordData.activity_id.in_(activity_ids)))
+	for record in recorddata_to_delete:
+		db.session.delete(record)
 	db.session.commit()
 
 def rename_activities(activity_ids:list, new_name:str) -> None:
 	'''
 	Reset Activity.name
 	'''
-	activities = get_activities_by_ids(activity_ids)
-	print ("activities to rename:",[act.id for act in activities])
+	activities = db.session.execute(db.select(Activity).where(Activity.id.in_(activity_ids))).scalars().all()
 	if activities is None:
 		# todo: raise exception
 		return
@@ -361,8 +451,12 @@ def get_recordtypes_by_(activitytype_id:int=None):
 	if activitytype_id is not None:
 		query = query.where(RecordType.activitytype_id==activitytype_id)
 
-	types = db.session.execute(query).scalars().all()
-	return types
+	recordtypes = db.session.execute(query).scalars().all()
+	return recordtypes
+
+def get_recordtypes_by_activitytypename(activitytypename:str=None):
+	activitytype_id = db.session.execute(db.select(ActivityType.id).where(ActivityType.name == activitytypename)).scalar_one_or_none()
+	return get_recordtypes_by_(activitytype_id)
 
 ### RECORD DATA ###
 
@@ -385,37 +479,59 @@ class RecordData(db.Model):
 	starttime = db.Column(db.Float, nullable=False)
 	# the timepoint during the activity where the record ends:
 	endtime = db.Column(db.Float)
-	
-	@property
-	def to_dict(self):
-		activity_type_id = db.session.execute(db.select(RecordType.activitytype_id).where(RecordType.id==self.recordtype_id)).scalar_one_or_none()
-		record_dict = {
+
+
+class RecordDataDTO():
+	def __init__(self, recorddata:RecordData):
+		# original data:
+		self.activity_type_id = db.session.execute(db.select(RecordType.activitytype_id).where(RecordType.id==recorddata.recordtype_id)).scalar_one_or_none()
+		self.id = recorddata.id
+		self.recordtype_id = recorddata.recordtype_id
+		self.athlete_id = recorddata.athlete_id
+		self.activity_id = recorddata.activity_id
+		self.time = recorddata.time
+		self.elevation_gain = recorddata.elevation_gain
+		self.elevation_delta = recorddata.elevation_delta
+		self.starttime = recorddata.starttime
+		self.datetime = db.session.execute(db.select(Activity.datetime).where(Activity.id == recorddata.activity_id)).scalar_one_or_none()
+		# pre-formatted data:
+		self.activitytype_name = db.session.execute(db.select(ActivityType.name).where(ActivityType.id==self.activity_type_id)).scalar_one_or_none()
+		self.time_hms = format_time_hours(recorddata.time, include_seconds=True)
+		self.rtype_name = db.session.execute(db.select(RecordType.name).where(RecordType.id == recorddata.recordtype_id)).scalar_one_or_none()
+		self.rtype_distance = db.session.execute(db.select(RecordType.distance).where(RecordType.id == recorddata.recordtype_id)).scalar_one_or_none()
+		self.athlete_name = db.session.execute(db.select(Athlete.name).where(Athlete.id == recorddata.athlete_id)).scalar_one_or_none()
+		self.activity_name = db.session.execute(db.select(Activity.name).where(Activity.id == recorddata.activity_id)).scalar_one_or_none()
+
+		if recorddata.endtime is not None:
+			self.endtime = recorddata.endtime
+		else:
+			self.endtime = recorddata.starttime+recorddata.time
+		if self.datetime is not None:
+			self.date = f"{self.datetime.day:02d}.{self.datetime.month:02d}.{self.datetime.year:d}"
+		else:
+			self.date = "01.01.1900"
+
+	def to_dict(self) -> dict:
+		return {
+			"activity_type_id" : self.activity_type_id,
 			"id" : self.id,
 			"recordtype_id" : self.recordtype_id,
 			"athlete_id" : self.athlete_id,
 			"activity_id" : self.activity_id,
 			"time" : self.time,
-			"elevation_gain": self.elevation_gain,
-			"elevation_delta": self.elevation_delta,
+			"elevation_gain" : self.elevation_gain,
+			"elevation_delta" : self.elevation_delta,
 			"starttime" : self.starttime,
-			"datetime" : db.session.execute(db.select(Activity.datetime).where(Activity.id == self.activity_id)).scalar_one_or_none(),
-			# pre-formatted data:
-			"activitytype_name" : db.session.execute(db.select(ActivityType.name).where(ActivityType.id==activity_type_id)).scalar_one_or_none(),
-			"time_hms" : format_time_hours(self.time, include_seconds=True),
-			#"elevation_gain_str": f"{self.elevation_gain:0.0f}",
-			#"elevation_delta_str": f"{self.elevation_delta:0.0f}",
-			"rtype_name" : db.session.execute(db.select(RecordType.name).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
-			"rtype_distance" : db.session.execute(db.select(RecordType.distance).where(RecordType.id == self.recordtype_id)).scalar_one_or_none(),
-			"athlete_name" : db.session.execute(db.select(Athlete.name).where(Athlete.id == self.athlete_id)).scalar_one_or_none(),
-			"activity_name" : db.session.execute(db.select(Activity.name).where(Activity.id == self.activity_id)).scalar_one_or_none(),
-			"date" : ""
+			"endtime" : self.endtime,
+			"datetime" :  self.datetime,
+			"activitytype_name" : self.activitytype_name,
+			"time_hms" : self.time_hms,
+			"rtype_name" : self.rtype_name,
+			"rtype_distance" : self.rtype_distance,
+			"athlete_name" : self.athlete_name,
+			"activity_name" : self.activity_name,
+			"date" : self.date
 		}
-		if self.endtime is not None:
-			record_dict["endtime"] = self.endtime
-		else:
-			record_dict["endtime"] = self.starttime+self.time
-		record_dict["date"] = f"{record_dict["datetime"].day:02d}.{record_dict["datetime"].month:02d}.{record_dict["datetime"].year:d}"
-		return record_dict
 
 def add_recorddata(
 		recordtype_id:int,
@@ -438,21 +554,22 @@ def add_recorddata(
 			elevation_delta=elevation_delta)
 		db.session.add(new_recorddata)
 		db.session.commit()
+		return RecordDataDTO(new_recorddata)
 	else:
 		# record already exists!
-		return
+		return None
 
 def get_recorddata_and_activity_by_record_ids(recorddata_ids:list):
 	records_and_activities = db.session.execute(
 		db.select(RecordData, Activity)
 			.join(Activity, Activity.id == RecordData.activity_id)
 			.where(RecordData.id.in_(recorddata_ids))).all()
-	return records_and_activities
+	return [[RecordDataDTO(rec_act[0]), ActivityDTO(rec_act[1])] for rec_act in records_and_activities]
 
 def get_recorddata_by_(
 		activity_ids:list=None,
 		recordtype_ids:list=None,
-		athlete_ids:list=None):
+		athlete_ids:list=None) -> list:
 	'''
 	Get from database:
 	- all records of a single athlete
@@ -478,7 +595,7 @@ def get_recorddata_by_(
 			RecordData.athlete_id.in_(athlete_ids))
 
 	records = db.session.execute(query).scalars().all()
-	return records
+	return [RecordDataDTO(record) for record in records]
 
 ### DATABASE META / TESTS
 

@@ -4,7 +4,7 @@
 import os
 
 from src import RouteGraph as RG
-from src import TourGraph as TG
+from src import ActivityGraph as AG
 from src import RouteGraphPlotter as RGP
 from src import RouteProfilePlotter as RPP
 from src import TourGraphPlotter as TGP
@@ -32,7 +32,7 @@ class AppInputManager(SubTask):
 		'''
 		activities: list of DBH.Activity
 		'''
-		self.activities = [activity.to_dict for activity in activities]
+		self.activities = activities#[activity.to_dict for activity in activities]
 
 	def set_filename_prefix(self, filename:str):
 		self.filename_prefix = filename
@@ -59,7 +59,7 @@ class AppInputManagerRouteMap(AppInputManager):
 		# sort activities by athlete:
 		activities_by_athlete = {}
 		for activity in self.activities:
-			athlete_id = activity["athlete_id"]
+			athlete_id = activity.athlete_id
 			if athlete_id not in activities_by_athlete:
 				activities_by_athlete[athlete_id] = []
 			activities_by_athlete[athlete_id].append(activity)
@@ -71,7 +71,7 @@ class AppInputManagerRouteMap(AppInputManager):
 				activities = activities_by_athlete[athlete_id],
 				lat_ref = self.ref_lat,
 				lon_ref = self.ref_lon,
-				name = activities_by_athlete[athlete_id][0]["type_name"]+"_by_"+activities_by_athlete[athlete_id][0]["athlete_name"]
+				name = activities_by_athlete[athlete_id][0].type_name+"_by_"+activities_by_athlete[athlete_id][0].athlete_name
 				)
 			self.add_task_child(rgc)
 			routegraphconstructors.append(rgc)
@@ -110,14 +110,14 @@ class AppInputManagerTourAnimation(AppInputManager):
 		self.zoom_in = zoom_in
 
 	def run_animation_builder(self):
-		tourgraphs = []
+		activitygraphs = []
 		for activity in self.activities:
-			tgc = TG.TourGraphConstructor(activity)
-			self.add_task_child(tgc)
-			tourgraphs.append(tgc.get_tourgraph())
+			agc = AG.ActivityGraphConstructor()
+			self.add_task_child(agc)
+			activitygraphs.append(agc.build_from_database(activity))
 		
 		# plot animation:
-		tgp = TGP.TourGraphPlotter(tourgraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(tourgraphs)>1, add_label=len(tourgraphs)<2, add_profile=len(tourgraphs)<2)
+		tgp = TGP.TourGraphPlotter(activitygraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(activitygraphs)>1, add_label=len(activitygraphs)<2, add_profile=len(activitygraphs)<2)
 		self.add_task_child(tgp)
 		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix)
 		self.finish_progress()

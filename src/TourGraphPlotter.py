@@ -11,7 +11,7 @@ import matplotlib as mpl
 from PIL import Image, ImageDraw
 
 from src import OSMMapDownloader as osmmd
-from src import TourGraph as TG
+from src import ActivityGraph as AG
 from src import ColorManager as CM
 from src.SubTask import SubTask
 
@@ -34,7 +34,7 @@ def fig2img(fig):
 
 class TourGraphPlotter(SubTask):
 	def __init__(self,
-			tourgraphs:list[TG.TourGraph],
+			tourgraphs:list[AG.ActivityGraph],
 			zoom:int,
 			add_border:bool=True,
 			dpi:int=100,
@@ -95,8 +95,8 @@ class TourGraphPlotter(SubTask):
 				continue
 			for node_id in tg.nodes:
 				node = tg.nodes[node_id]
-				node_lat = node.get_latitude()
-				node_lon = node.get_longitude()
+				node_lat = node.latitude
+				node_lon = node.longitude
 				if self.lon_min is None or self.lon_min > node_lon:
 					self.lon_min = node_lon
 				if self.lon_max is None or self.lon_max < node_lon:
@@ -132,7 +132,7 @@ class TourGraphPlotter(SubTask):
 		# get list of (lat, lon)-coords of tour (for map construction):
 		tourcoords = None
 		if follow_path_only:
-			tourcoords = [(self.tourgraphs[0].nodes[edge.id_begin].get_latitude(), self.tourgraphs[0].nodes[edge.id_begin].get_longitude()) for edge in self.tourgraphs[0].edges]
+			tourcoords = [(self.tourgraphs[0].nodes[edge.id_begin].latitude, self.tourgraphs[0].nodes[edge.id_begin].longitude) for edge in self.tourgraphs[0].edges]
 		# get map:
 		mapdownloader = osmmd.OSMMapDownloader(self.lat_min, self.lat_max, self.lon_min, self.lon_max, zoom=self.zoom, add_border=self.add_border, route=tourcoords)
 		self.add_task_child(mapdownloader)
@@ -153,14 +153,14 @@ class TourGraphPlotter(SubTask):
 		except FileNotFoundError:
 			print ("no map image. plot route graph without map.")
 
-	def _get_node_xy_coords(self, tg:TG.TourGraph, node_id:int) -> tuple:
+	def _get_node_xy_coords(self, agraph:AG.ActivityGraph, node_id:int) -> tuple:
 		'''	
 		constructs (x,y)-coords from a node's gps-datapoint, ready for lineplot
 		'''
 		x = None
 		y = None
-		node_lat = tg.nodes[node_id].get_latitude()
-		node_lon = tg.nodes[node_id].get_longitude()
+		node_lat = agraph.nodes[node_id].latitude
+		node_lon = agraph.nodes[node_id].longitude
 		
 		if node_lat is not None and node_lon is not None:
 			# compute pixel offsets:
@@ -268,7 +268,7 @@ class TourGraphPlotter(SubTask):
 		tour_ys = [[] for _ in self.tourgraphs]
 		for i in range(len(self.tourgraphs)):
 			self.current_computation_step = "Plot tour "+str(i+1)+" of "+str(len(self.tourgraphs))
-			line, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), linewidth=self._get_linewidth(), zorder=i, label=self.tourgraphs[i].basename)
+			line, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), linewidth=self._get_linewidth(), zorder=i, label=self.tourgraphs[i].name)
 			point, = self.axes.plot([], [], c=colormanager.get_color(self.tourgraphs[i].activity), marker='o', markersize=400/self.dpi, zorder=20+i)
 			lines.append(line)
 			markerpoints.append(point)
@@ -294,7 +294,7 @@ class TourGraphPlotter(SubTask):
 		if self.add_profile:
 			self.axis_profile = self.figure.add_axes([0.02, 0.02, 0.96, 0.2], zorder=10, facecolor="white")
 			# compute dimensions and limits of profile plots:
-			maximum_total_dist = max([tg.activity["distance"] for tg in self.tourgraphs])
+			maximum_total_dist = max([tg.activity.distance for tg in self.tourgraphs])
 			self.axis_profile.set_xlim([-maximum_total_dist*0.01,maximum_total_dist*1.01])
 			min_elevation = 10000
 			max_elevation = -1
@@ -422,8 +422,8 @@ class TourGraphPlotter(SubTask):
 		'''
 		def get_node_latlon(tg_id, edge_id):
 			tg = self.tourgraphs[tg_id]
-			lat = tg.nodes[tg.edges[edge_id].id_begin].get_latitude()
-			lon = tg.nodes[tg.edges[edge_id].id_begin].get_longitude()
+			lat = tg.nodes[tg.edges[edge_id].id_begin].latitude
+			lon = tg.nodes[tg.edges[edge_id].id_begin].longitude
 			return (lat, lon)
 
 		def get_distance(tg_id_a, edge_id_a, tg_id_b, edge_id_b):

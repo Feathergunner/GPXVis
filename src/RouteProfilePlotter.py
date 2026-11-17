@@ -265,7 +265,7 @@ def cut_activity_to_timeframe(activity_data, min_time:float=None, max_time:float
 
 class RouteProfilePlotter(SubTask):
 	def __init__(self, activities:list, verbose=False):
-		self.activities = activities
+		self.activities = activities# = [act.to_dict for act in activities]
 		self.verbose = False
 		self.figure = None
 		self.axes = None
@@ -306,8 +306,8 @@ class RouteProfilePlotter(SubTask):
 		self.data = []
 		for i in range(len(self.activities)):
 			if self.verbose:
-				print ("parse data:", self.activities[i]["name"], self.activities[i]["datetime"])
-			(gpxdata, metadata) = load_gpx_file(self.activities[i]["filepath"])
+				print ("parse data:", self.activities[i].name, self.activities[i].datetime)
+			(gpxdata, metadata) = load_gpx_file(self.activities[i].filepath)
 			gpsdata = parse_gps_from_gpx(gpxdata)
 			datapoints = []
 			previous_datapoint = None

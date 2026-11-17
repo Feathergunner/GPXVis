@@ -56,6 +56,7 @@ async function uploadFiles(){
 			body: formData
 		}
 	);
+	monitorProgress();
 }
 
 async function getActivities(considergps=false, addcheckbox=false, defaultchecked=false) {
@@ -64,11 +65,14 @@ async function getActivities(considergps=false, addcheckbox=false, defaultchecke
 
 	Gets a rendered html-table containing the activity-metadata from the server.
 	*/
-
 	if (considergps){
 		range = document.getElementById("activity_range_selection").value;
+		latitude = document.getElementById("inputLatitude").value;
+		input_lon = document.getElementById("inputLongitude").value;
 	} else{
 		range = 0;
+		latitude = 0;
+		longitude = 0;
 	}
 
 	const response = await fetch("/api/get_activities_table", {

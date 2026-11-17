@@ -6,11 +6,12 @@ import threading
 from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
 from flask_alembic import Alembic
 
+from src import ActivityUploader as AU
 from src import AppInputManager as AIM
 from src import SubTask
-from src import RecordUpdater as RU
+from src import ActivityGraph as AG
 from src import DatabaseHandler as DBH
-from src.DatabaseHandler import db, get_activities_by_, get_activities_by_ids
+from src.DatabaseHandler import db
 from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
 
@@ -120,14 +121,13 @@ def records():
 	recordtypes_by_acttype = {}
 	records_by_type = {}
 	for record in _records:
-		r_dict = record.to_dict
-		if r_dict["activitytype_name"] not in records_by_type:
-			records_by_type[r_dict["activitytype_name"]] = {}
-			recordtypes_by_acttype[r_dict["activitytype_name"]] = []
-		if r_dict["rtype_name"] not in records_by_type[r_dict["activitytype_name"]]:
-			records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]] = []
-			recordtypes_by_acttype[r_dict["activitytype_name"]].append(r_dict["rtype_name"])
-		records_by_type[r_dict["activitytype_name"]][r_dict["rtype_name"]].append(r_dict)
+		if record.activitytype_name not in records_by_type:
+			records_by_type[record.activitytype_name] = {}
+			recordtypes_by_acttype[record.activitytype_name] = []
+		if record.rtype_name not in records_by_type[record.activitytype_name]:
+			records_by_type[record.activitytype_name][record.rtype_name] = []
+			recordtypes_by_acttype[record.activitytype_name].append(record.rtype_name)
+		records_by_type[record.activitytype_name][record.rtype_name].append(record.to_dict())
 	for atype in records_by_type:
 		records_by_type[atype] = dict(sorted(records_by_type[atype].items(), key=lambda item: item[1][0]["rtype_distance"]))
 	return render_template(
@@ -237,30 +237,28 @@ def get_activities_from_query(data, consider_gps):
 	date_max = data.get("date_max", "")
 	use_unkown_date = data.get("use_unkown_date", "")
 
-	activities_from_db = get_activities_by_(athlete_ids, type_ids, date_min, date_max, use_unkown_date)
-	activities = [activity.to_dict for activity in activities_from_db]
+	activities = DBH.get_activities_by_(athlete_ids=athlete_ids, activitytype_ids=type_ids, date_min=date_min, date_max=date_max, use_unkown_date=use_unkown_date)
 
 	if consider_gps:
 		ref_lat = float(data.get("lat", ""))
 		ref_lon = float(data.get("lon", ""))
 		ref_range = float(data.get("range", ""))
-		activities_dict = []
+		relevant_activities = []
 		for activity in activities:
-			if check_gps_range(activity["start_latitude"], activity["start_longitude"], ref_lat, ref_lon, ref_range):
-				activities_dict.append(activity)
+			if check_gps_range(activity.start_latitude, activity.start_longitude, ref_lat, ref_lon, ref_range):
+				relevant_activities.append(activity)
 	else:
-		activities_dict = activities
-
-	return activities_dict
+		relevant_activities = activities
+	return relevant_activities
 
 @app.route("/api/get_activities_table", methods=["POST"])
 def get_activities_table():
 	data = request.get_json()
-	activities_dict = get_activities_from_query(data, data.get("consider_gps", ""))
+	activities = get_activities_from_query(data, data.get("consider_gps", ""))
 
 	return render_template(
 		"components/activity_table.html",
-		activities = activities_dict,
+		activities = activities,
 		addselectioncheckbox = data.get("add_checkbox", ""),
 		defaultchecked = data.get("default_checked", "")
 	)
@@ -277,9 +275,9 @@ def get_activity_and_records_by_activity_id():
 	Assumes the passed id is valid: does not check for exepctions or empty returns.
 	'''
 	requested_id = request.get_json().get("activity_id", "")
-	activity = DBH.get_activities_by_ids([requested_id])[0].to_dict
-	records = [r.to_dict for r in DBH.get_recorddata_by_(activity_ids=[activity["id"]])]
-	return jsonify({"activity" : activity, "records" : records})
+	activity = DBH.get_activities_by_ids([requested_id])[0]
+	records = [record.to_dict() for record in DBH.get_recorddata_by_(activity_ids=[activity.id])]
+	return jsonify({"activity" : activity.to_dict(), "records" : records})
 
 @app.route("/api/get_activities_at_coordinate", methods=["POST"])
 def get_activities_at_coordinate():
@@ -292,21 +290,16 @@ def upload_gpx():
 	files = request.files.getlist("files")
 	athlete_id = request.form["athlete_id"]
 
-	for file in files:
-		# get metadata:
-		file_metadata = get_metadata_from_file(file, True)
-		# copy file to local folder:
-		new_filename = str(athlete_id)+"_"+file_metadata["type"]+"_"+file_metadata["datetime"]+".gpx"
-		target_filepath = os.path.join(GPX_DIR, new_filename)
-		# save file at destination:
-		file.seek(0)
-		file.save(target_filepath)
-
-		DBH.add_activity(target_filepath, athlete_id=athlete_id)
-
-	return {
-		"status": "ok"
-	}
+	au = AU.ActivityUploader(files, athlete_id, app)
+	current_job = au
+	current_job.start_progress()
+	thread = threading.Thread(target=au.upload_activities())
+	thread.start()
+	return jsonify({
+		"current_task": "UploadActivities",
+		"current_status": "started",
+		"total_progress": 0
+	})
 
 @app.route("/api/get_all_athletes_from_db", methods=["POST"])
 def get_all_athletes_from_db():
@@ -317,16 +310,19 @@ def get_all_activitytypes_from_db():
 	return jsonify(DBH.get_all_activitytypes())
 
 @app.route("/api/runTourAnimation", methods=["POST"])
-def run_TourAnimation():
+def runTourAnimation():
 	global current_job
 	current_computation = "TourAnimation"
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
 
+	print ("get activities for ids:", activity_ids)
 	activities = db.session.execute(
 		db.select(DBH.Activity)
 			.where(DBH.Activity.id.in_(activity_ids))
 	).scalars().all()
+
+	print (activities[0].name)
 
 	aim_ta.set_activities(activities)
 	aim_ta.set_zoom(data.get("mapzoom", ""))
@@ -365,7 +361,7 @@ def run_MapPlotter():
 			"total_progress": 0
 		})
 	
-	aim_rmap.set_activities(get_activities_by_ids(activity_ids))
+	aim_rmap.set_activities(DBH.get_activities_by_ids(activity_ids))
 	aim_rmap.set_reference_area(float(ref_lat), float(ref_lon))
 	aim_rmap.set_zoom(int(mapzoom))
 	aim_rmap.set_filename_prefix(filename)
@@ -390,7 +386,7 @@ def run_DataPlotter():
 	axis_y = data.get("axis_y", "")
 	filename = data.get("filename", "")
 
-	aim_ad.set_activities(get_activities_by_ids(activity_ids))
+	aim_ad.set_activities(DBH.get_activities_by_ids(activity_ids))
 	aim_ad.set_key_x(axis_x)
 	aim_ad.set_key_y(axis_y)
 	aim_ad.set_color_key(data.get("color_key", ""))
@@ -482,14 +478,58 @@ def get_result_path():
 def return_img_filepath(filename):
 	return send_from_directory("output", filename)
 
+'''
+def construct_new_activity(filepath, metadata, athlete_id):
+	_activitytype_id = DBH.ensure_activitytype_exists(metadata.activitytype_name)
+
+	# build database entry:
+	new_activity = Activity(
+		activitytype_id = activitytype_id,
+		athlete_id = athlete_id,
+		name = metadata.name,
+		filepath = filepath,
+		datetime = metadata.datetime,
+		distance = metadata.distance_total,
+		duration = metadata.duration_total.total_seconds(),
+		elevation = metadata.elevation_gain,
+		start_latitude = metadata.start_latitude,
+		start_longitude = metadata.start_longitude)
+
+	with app.app_context():
+		db.session.add(new_activity)
+		db.session.commit()
+		activity_dto = DBH.ActivityDTO(new_activity)
+	return activity_dto
+'''
+
+'''
+def add_to_database(new_data:db.Model):
+	# callback to upload new data to database:
+	with app.app_context():
+		db.session.add(new_data)
+		db.session.commit()
+'''
+
 # start server
 if __name__ == "__main__":
 	# run app:
 	with app.app_context():
 		# print database stats to console
 		DBH.get_stats()
+		# delete existing records (for testing):
 		#db.session.query(DBH.RecordData).delete()
 		#db.session.commit()
-		updater = RU.RecordUpdater(db)
-		updater.update_records()
+
+		# add missing records:
+		#print ("... check for missing records ...")
+		#all_activities = DBH.get_activities_by_()
+		#for activity in all_activities:
+		#	missing_records = AG.check_for_missing_records(activity)
+		#	if len(missing_records) > 0:
+		#		print ("   ... found activity with missing records:", activity.id)
+		#		# some records are missing for this activity
+		#		agc = AG.ActivityGraphConstructor()
+		#		agraph = agc.build_from_database(activity)
+		#		updater = AG.RecordUpdater(agraph)
+		#		updater.update_records(missing_records)
 	app.run(debug=False)
