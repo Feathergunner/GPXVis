@@ -22,11 +22,8 @@ class PathNode():
 		PathNode.n += 1
 		self.latitude = gpxpoint.latitude
 		self.longitude = gpxpoint.longitude
-		if elevation in gpxpoint:
-			self.elevation = gpxpoint.elevation
-		else:
-			self.elevation = None
-
+		self.elevation = gpxpoint.elevation
+		
 		if predecessor is not None:
 			# compute stats relative to previous node:
 			self.length = get_latlon_vector_length(self.latitude-predecessor.latitude, self.longitude-predecessor.longitude)
@@ -67,23 +64,25 @@ class ActivityNode(PathNode):
 
 		if predecessor is not None:
 			# compute stats relative to previous node:
+			self.distance_since_start = predecessor.distance_since_start+predecessor.length
 			self.time_delta = self.timestamp - predecessor.timestamp
 			self.elevation_at_start = predecessor.elevation_at_start
 			self.elevation_relative = self.elevation-self.elevation_at_start
 			self.elevation_gain_since_start = predecessor.elevation_gain_since_start + max(0, self.elevation_delta)
 
 			if self.length > 0:
-				self.pace = (self.time_delta/self.length)*(1000/60)
+				self.pace = (self.time_delta.total_seconds()/self.length)*(1000/60)
 				self.slope = (self.elevation_delta/self.length*100)
 			else:
 				self.pace = predecessor.pace
 				self.slope = predecessor.slope
-			if self.time_delta> 0:
-				self.speed = (self.length/1000)/(self.time_delta/3600)
+			if self.time_delta > datetime.timedelta(0):
+				self.speed = (self.length/1000)/(self.time_delta.total_seconds()/3600)
 			else:
 				self.speed = predecessor.speed
 		else:
 			# no previous node, init data:
+			self.distance_since_start = 0
 			self.time_delta = datetime.timedelta(0)
 			self.elevation_at_start = self.elevation
 			self.elevation_relative = 0
@@ -94,29 +93,29 @@ class ActivityNode(PathNode):
 
 class Split():
 	def __init__(self, nodelist:list):
-		self.nodelist = nodelist
+		#self.nodelist = nodelist
 
-		self.length = sum([node.length for node in self.nodelist])
-		self.time_delta = sum([node.time_delta for node in self.nodelist])
+		self.length = sum([node.length for node in nodelist])
+		self.time_delta = sum([node.time_delta for node in nodelist])
 
 		self.elevation_avg = self._get_mean("elevation")
-		self.elevation_gain = sum([node.elevation_delta for node in self.nodelist])
+		self.elevation_gain = sum([node.elevation_delta for node in nodelist])
 	
-		self.pace_avg = self._get_mean("pace")
-		self.pace_best = min([node.pace for node in self.nodelist])
-		self.speed_avg = self._get_mean("speed")
-		self.speed_best = max([node.speed for node in self.nodelist])
-		self.slope_avg = self._get_mean("slope")
-		self.slope_max = max([node.slope for node in self.nodelist])
-		self.heartrate_avg = self._get_mean("heartrate")
-		self.heartrate_max = max(self._get_cleanlist(heartrate))
-		self.cadence_avg = self._get_mean("cadence")
+		self.pace_avg = self._get_mean(nodelist, "pace")
+		self.pace_best = min([node.pace for node in nodelist])
+		self.speed_avg = self._get_mean(nodelist, "speed")
+		self.speed_best = max([node.speed for node in nodelist])
+		self.slope_avg = self._get_mean(nodelist, "slope")
+		self.slope_max = max([node.slope for node in nodelist])
+		self.heartrate_avg = self._get_mean(nodelist, "heartrate")
+		self.heartrate_max = max(self._get_cleanlist(nodelist, heartrate))
+		self.cadence_avg = self._get_mean(nodelist, "cadence")
 
-	def _get_cleanlist(self, parameter):
-		return [getattr(_obj, parameter) for _obj in self.nodelist if getattr(_obj, parameter) is not None and getattr(_obj, parameter) != 0]
+	def _get_cleanlist(self, _list, parameter):
+		return [getattr(_obj, parameter) for _obj in _list if getattr(_obj, parameter) is not None and getattr(_obj, parameter) != 0]
 
-	def _get_mean(self, parameter):
-		cleanlist = self._get_cleanlist(parameter)
+	def _get_mean(self, _list, parameter):
+		cleanlist = self._get_cleanlist(_list, parameter)
 		if len(cleanlist) > 0:
 			return np.mean(cleanlist)
 		else:
