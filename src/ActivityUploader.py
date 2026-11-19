@@ -176,9 +176,10 @@ class ActivityUploader(SubTask):
 				gpxdata = gpxpy.parse(gpxfile)
 				metadata = ActivityMetadata(gpxdata)
 				nodelist = AP.construct_pathnodes(gpxdata, metadata.start_index)
-				duration_total = sum([node.delta_time.total_seconds() for node in nodelist])
-				distance_total = sum([node.length for node in nodelist])
-				elevation_gain = sum([max(0, node.delta_elevation) for node in nodelist])
+				fullsplit = AP.Split(nodelist)
+				duration_total = fullsplit.delta_time.total_seconds()
+				distance_total = fullsplit.length
+				elevation_gain = fullsplit.elevation_gain
 				metadata.add_aggregated_statistics(duration_total, distance_total, elevation_gain)
 
 				# copy file to local folder:

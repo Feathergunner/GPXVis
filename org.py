@@ -25,3 +25,6 @@ STRAIGHT_PATH_MAX_DEGREE = 5
 # reference point for activities:
 LAT_HOME = 50.8823
 LON_HOME = 11.6109
+
+GPX_KEYS_HEARTRATE = ["hr", "heartrate", "heart_rate"]
+GPX_KEYS_CADENCE = ["cad", "cadence"]
