@@ -64,7 +64,8 @@ class ActivityNode(PathNode):
 
 		if predecessor is not None:
 			# compute stats relative to previous node:
-			self.distance_since_start = predecessor.distance_since_start+predecessor.length
+			self.distance_since_start = predecessor.distance_since_start + predecessor.length
+			self.time_since_start = predecessor.time_since_start + predecessor.time_delta
 			self.time_delta = self.timestamp - predecessor.timestamp
 			self.elevation_at_start = predecessor.elevation_at_start
 			self.elevation_relative = self.elevation-self.elevation_at_start
@@ -83,6 +84,7 @@ class ActivityNode(PathNode):
 		else:
 			# no previous node, init data:
 			self.distance_since_start = 0
+			self.time_since_start = datetime.timedelta(0)
 			self.time_delta = datetime.timedelta(0)
 			self.elevation_at_start = self.elevation
 			self.elevation_relative = 0
@@ -94,7 +96,12 @@ class ActivityNode(PathNode):
 class Split():
 	VALID_SPLIT_DIMENSIONS = ["length", "time_delta", "elevation_gain"]
 	def __init__(self, nodelist:list, is_complete:bool=True):
-		#self.nodelist = nodelist
+		# nodelist: list of ActivityNode
+		# is_complete: a flag that signals if this split has the full required length
+		# 	this is ususally only False for the last split of an activity.
+		#	Incomplete splits might be omitted in some plots,
+		#	because their data lies outside the usual intervals
+		self.nodelist = nodelist
 		self.is_complete = is_complete
 
 		self.length = sum([node.length for node in nodelist])
@@ -103,6 +110,8 @@ class Split():
 		self.elevation_avg = self._get_mean("elevation")
 		self.elevation_gain = sum([node.elevation_delta for node in nodelist])
 	
+		## todo: compute accurate data:
+		## this code ignores that the "sizes" of the nodes are not necessarily equal!
 		self.pace_avg = self._get_mean(nodelist, "pace")
 		self.pace_best = min([node.pace for node in nodelist])
 		self.speed_avg = self._get_mean(nodelist, "speed")
@@ -114,9 +123,12 @@ class Split():
 		self.cadence_avg = self._get_mean(nodelist, "cadence")
 
 	def _get_cleanlist(self, _list, parameter):
-		return [getattr(_obj, parameter) for _obj in _list if getattr(_obj, parameter) is not None and getattr(_obj, parameter) != 0]
+		# returns a list that contains only non-None values:
+		return [getattr(_obj, parameter) for _obj in _list if getattr(_obj, parameter) is not None]
 
 	def _get_mean(self, _list, parameter):
+		# computes the mean of all non-None values in _list
+		# if _list only contains None returns 0
 		cleanlist = self._get_cleanlist(_list, parameter)
 		if len(cleanlist) > 0:
 			return np.mean(cleanlist)

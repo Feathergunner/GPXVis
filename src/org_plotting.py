@@ -56,3 +56,59 @@ AXIS_DOM_COLOR = [
 	{"value" : "activitytype", "label" : "Activity Type"},
 	{"value" : "date", "label" : "Date"}
 ]
+
+# graph parameters:
+PLOT_WIDTH = 16
+PLOT_HEIGHT = 9
+PLOT_DPI = 100
+
+KEY_UNITS = {
+	"distance" : "km",
+	"time" : "h:min",
+	"elevation" : "m",
+	"elevation relative" : "m",
+	"elevation gain" : "m",
+	"slope" : "%",
+	"pace" : "min/km",
+	"avg pace" : "min/km",
+	"speed" : "km/h",
+	"avg speed" : "km/h",
+	"date" : "YYYY-MM-DD",
+	"total distance" : "km",
+	"total duration" : "h:min:sec",
+	"total elevation" : "m",
+}
+
+KEY_RANGE_MIN = {
+	"distance" : None,
+	"time" : None,
+	"elevation" : None,
+	"elevation relative" : None,
+	"elevation gain" : 0,
+	"slope" : -0.5,
+	"pace" : 2,
+	"avg pace" : 2,
+	"speed" : 4,
+	"avg speed" : 4,
+	"date" : None,
+	"total distance" : 0,
+	"total duration" : 0,
+	"total elevation" : 0,
+}
+
+KEY_RANGE_MAX = {
+	"distance" : None,
+	"time" : None,
+	"elevation" : None,
+	"elevation relative" : None,
+	"elevation gain" : None,
+	"slope" : 0.5,
+	"pace" : 15,
+	"avg pace" : 15,
+	"speed" : 30,
+	"avg speed" : 30,
+	"date" : None,
+	"total distance" : None,
+	"total duration" : None,
+	"total elevation" : None,
+}
