@@ -92,8 +92,10 @@ class ActivityNode(PathNode):
 			self.speed = 0
 
 class Split():
-	def __init__(self, nodelist:list):
+	VALID_SPLIT_DIMENSIONS = ["length", "time_delta", "elevation_gain"]
+	def __init__(self, nodelist:list, is_complete:bool=True):
 		#self.nodelist = nodelist
+		self.is_complete = is_complete
 
 		self.length = sum([node.length for node in nodelist])
 		self.time_delta = sum([node.time_delta for node in nodelist])
@@ -141,8 +143,31 @@ def construct_pathnodes(gpxdata:str, start_gpx_index:int=0) -> list:
 				predecessor = new_node
 	return nodelist
 
-def construct_splits(nodelist:list, split_dimension:str="distance", split_size:int=1000) -> list:
+def construct_splits(nodelist:list, split_dimension:str="length", split_size:int=1000) -> list:
+	#check if split_dimension is valid:
+	if not split_dimension in Split.VALID_SPLIT_DIMENSIONS:
+		## todo: raise exception
+		return []
+
 	# constructs a set of splits:
 
-	## todo
-	return []
+	splits = []
+	activity_finished = False
+	current_node_index = 0
+	while not activity_finished:
+		new_split_nodes = []
+		new_spit_size = 0
+		split_finished = False
+		while current_node_index<len(nodelist) and not split_finished:
+			new_split_nodes.append(nodelist[current_node_index])
+			new_spit_size += getattr(nodelist[current_node_index], split_dimension)
+			if new_spit_size >= split_size:
+				split_finished = True
+				splits.append(Split(new_split_nodes))
+		if not split_finished:
+			# we have reached the end of the nodelist: 
+			activity_finished = True
+			if len(new_split_nodes) > 0:
+				split.append(Split(new_split_nodes, is_complete = False))
+
+	return splits
