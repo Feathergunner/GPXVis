@@ -115,3 +115,5 @@ class ColorManager():
 			print ("unknwon color_key:",self.color_key)
 			return "blue"
 		
+	def get_color_by_split(self, split):
+		return "red"

@@ -4,12 +4,13 @@
 import os
 
 from src import RouteGraph as RG
-from src import ActivityGraph as AG
 from src import RouteGraphPlotter as RGP
-from src import RouteProfilePlotter as RPP
 from src import TourGraphPlotter as TGP
 from src.SubTask import SubTask
 from org import GPX_DIR
+
+from src import ActivityPath as AP
+from src import ActivityPlotter as Plotter
 
 class AppInputManager(SubTask):
 	def __init__(self, taskname:str, taskweight:int):
@@ -32,7 +33,7 @@ class AppInputManager(SubTask):
 		'''
 		activities: list of DBH.Activity
 		'''
-		self.activities = activities#[activity.to_dict for activity in activities]
+		self.activities = activities
 
 	def set_filename_prefix(self, filename:str):
 		self.filename_prefix = filename
@@ -111,15 +112,15 @@ class AppInputManagerTourAnimation(AppInputManager):
 
 	def run_animation_builder(self):
 		activitygraphs = []
-		for activity in self.activities:
-			agc = AG.ActivityGraphConstructor()
-			self.add_task_child(agc)
-			activitygraphs.append(agc.build_from_database(activity))
-		
-		# plot animation:
-		tgp = TGP.TourGraphPlotter(activitygraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(activitygraphs)>1, add_label=len(activitygraphs)<2, add_profile=len(activitygraphs)<2)
-		self.add_task_child(tgp)
-		tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix)
+		#for activity in self.activities:
+		#	agc = AG.ActivityGraphConstructor()
+		#	self.add_task_child(agc)
+		#	activitygraphs.append(agc.build_from_database(activity))
+		#
+		## plot animation:
+		#tgp = TGP.TourGraphPlotter(activitygraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(activitygraphs)>1, add_label=len(activitygraphs)<2, add_profile=len(activitygraphs)<2)
+		#self.add_task_child(tgp)
+		#tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix)
 		self.finish_progress()
 
 class AppInputManagerActivityData(AppInputManager):
@@ -141,10 +142,15 @@ class AppInputManagerActivityData(AppInputManager):
 
 	def run_plotter(self):
 		# plot daragraph of activities:
-		rpp = RPP.RouteProfilePlotter(self.activities)
-		self.add_task_child(rpp)
-		rpp.parse_data()
-		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix)
+		nodelists = [AP.construct_pathnodes_from_activitydto(act_dto) for act_dto in self.activities]
+		activities = [Plotter.Activity(self.activities[i], nodelists[i]) for i in range(len(self.activities))]
+		pso = Plotter.PlotSpecificationObject(
+			key_x=Plotter.ALL_KEYS[self.axis_x_key],
+			key_y=Plotter.ALL_KEYS[self.axis_y_key],
+			key_color=Plotter.ALL_KEYS[self.color_key])
+		plotter = Plotter.ActivityDataPlotter(activities, pso)
+		self.add_task_child(plotter)
+		self.outputfilepath = plotter.plot_data()
 		self.finish_progress()
 		return self.outputfilepath
 
@@ -163,9 +169,9 @@ class AppInputManagerRecordData(AppInputManagerActivityData):
 			return
 
 	def run_plotter(self):
-		rpp = RPP.RouteProfilePlotter(self.activities)
-		self.add_task_child(rpp)
-		rpp.parse_data()
-		self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix, timeframes=self.timeframes)
+		#rpp = RPP.RouteProfilePlotter(self.activities)
+		#self.add_task_child(rpp)
+		#rpp.parse_data()
+		#self.outputfilepath = rpp.plot(self.axis_x_key, self.axis_y_key, self.color_key, basename=self.filename_prefix, timeframes=self.timeframes)
 		self.finish_progress()
-		return self.outputfilepath
+		#return self.outputfilepath

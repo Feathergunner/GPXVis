@@ -3,6 +3,7 @@
 
 import gpxpy
 import datetime
+import numpy as np
 
 from src.misc_geometry import get_latlon_vector_length
 from src import DatabaseHandler as DBH
@@ -95,32 +96,36 @@ class ActivityNode(PathNode):
 
 class Split():
 	VALID_SPLIT_DIMENSIONS = ["length", "time_delta", "elevation_gain"]
-	def __init__(self, nodelist:list, is_complete:bool=True):
+	def __init__(self, nodelist:list, is_complete:bool=True, name:str=""):
 		# nodelist: list of ActivityNode
+		self.nodelist = nodelist
+
 		# is_complete: a flag that signals if this split has the full required length
 		# 	this is ususally only False for the last split of an activity.
 		#	Incomplete splits might be omitted in some plots,
 		#	because their data lies outside the usual intervals
-		self.nodelist = nodelist
 		self.is_complete = is_complete
 
-		self.length = sum([node.length for node in nodelist])
-		self.time_delta = sum([node.time_delta for node in nodelist])
+		# name: optional string, intendet to be used for splits that represent records
+		self.name = name
 
-		self.elevation_avg = self._get_mean("elevation")
+		self.length = sum([node.length for node in nodelist])
+		self.time_delta = sum([node.time_delta for node in nodelist], datetime.timedelta())
+
+		self.elevation = self._get_mean(nodelist, "elevation")
 		self.elevation_gain = sum([node.elevation_delta for node in nodelist])
 	
 		## todo: compute accurate data:
 		## this code ignores that the "sizes" of the nodes are not necessarily equal!
-		self.pace_avg = self._get_mean(nodelist, "pace")
+		self.pace = self._get_mean(nodelist, "pace")
 		self.pace_best = min([node.pace for node in nodelist])
-		self.speed_avg = self._get_mean(nodelist, "speed")
+		self.speed = self._get_mean(nodelist, "speed")
 		self.speed_best = max([node.speed for node in nodelist])
-		self.slope_avg = self._get_mean(nodelist, "slope")
+		self.slope = self._get_mean(nodelist, "slope")
 		self.slope_max = max([node.slope for node in nodelist])
-		self.heartrate_avg = self._get_mean(nodelist, "heartrate")
-		self.heartrate_max = max(self._get_cleanlist(nodelist, heartrate))
-		self.cadence_avg = self._get_mean(nodelist, "cadence")
+		self.heartrate = self._get_mean(nodelist, "heartrate")
+		self.heartrate_max = max([0]+self._get_cleanlist(nodelist, "heartrate"))
+		self.cadence = self._get_mean(nodelist, "cadence")
 
 	def _get_cleanlist(self, _list, parameter):
 		# returns a list that contains only non-None values:
@@ -135,7 +140,7 @@ class Split():
 		else:
 			return 0
 
-def construct_pathnodes(gpxdata:str, start_gpx_index:int=0) -> list:
+def construct_pathnodes(gpxdata, start_gpx_index:int=0) -> list:
 	# constructs a list of ActivityNodes from parsed gpx file
 	# gpxdata: data as returned by gpxpy.parse(), i.e.
 	#	gpxdata = gpxpy.parse(open(self.activity.filepath, 'r'))
@@ -155,14 +160,19 @@ def construct_pathnodes(gpxdata:str, start_gpx_index:int=0) -> list:
 				predecessor = new_node
 	return nodelist
 
+def construct_pathnodes_from_activitydto(activity_dto:DBH.ActivityDTO) -> list:
+	gpxdata = None
+	with open(activity_dto.filepath, 'r') as gpxfile:
+		gpxdata = gpxpy.parse(gpxfile)
+	return construct_pathnodes(gpxdata, activity_dto.start_gpx_index)
+
 def construct_splits(nodelist:list, split_dimension:str="length", split_size:int=1000) -> list:
 	#check if split_dimension is valid:
 	if not split_dimension in Split.VALID_SPLIT_DIMENSIONS:
 		## todo: raise exception
 		return []
 
-	# constructs a set of splits:
-
+	# constructs a set of splits that covers the full nodelist:
 	splits = []
 	activity_finished = False
 	current_node_index = 0
@@ -175,11 +185,25 @@ def construct_splits(nodelist:list, split_dimension:str="length", split_size:int
 			new_spit_size += getattr(nodelist[current_node_index], split_dimension)
 			if new_spit_size >= split_size:
 				split_finished = True
+				# split is complete, add to list:
 				splits.append(Split(new_split_nodes))
+				# reset new split:
+				new_split_nodes = []
+				new_spit_size = 0
+			current_node_index += 1
 		if not split_finished:
 			# we have reached the end of the nodelist: 
 			activity_finished = True
 			if len(new_split_nodes) > 0:
-				split.append(Split(new_split_nodes, is_complete = False))
+				splits.append(Split(new_split_nodes, is_complete = False))
+	return splits
 
+def construct_splits_from_recorddata(nodelist:list, recorddata:list):
+	# recorddata: list fo DBH.RecordDataDTO
+	# constructs one split for each record in recorddata
+
+	splits = []
+	for record in recorddata:
+		## todo
+		continue
 	return splits

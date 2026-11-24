@@ -105,7 +105,7 @@ class Activity(db.Model):
 	distance = db.Column(db.Float)
 	duration = db.Column(db.Float)
 	elevation = db.Column(db.Float)
-	#start_gpx_index = db.Column(db.Integer, nullable=True)
+	start_gpx_index = db.Column(db.Integer, default=0)
 	start_latitude = db.Column(db.Float)
 	start_longitude = db.Column(db.Float)
 	imagepath_preview = db.Column(db.String, nullable=True)
@@ -169,7 +169,10 @@ class ActivityDTO():
 		self.maximum_elevation = -1 # highest point during activity
 		self.start_latitude = activity.start_latitude
 		self.start_longitude = activity.start_longitude
-		#self.start_gpx_index = activity.start_gpx_index
+		if activity.start_gpx_index is None:
+			self.start_gpx_index = 0
+		else:
+			self.start_gpx_index = activity.start_gpx_index
 		# additional, pre-formatted data:
 		self.type_name = db.session.execute(db.select(ActivityType.name).filter_by(id=activity.activitytype_id)).scalar_one_or_none()
 		self.athlete_name = db.session.execute(db.select(Athlete.name).filter_by(id=activity.athlete_id)).scalar_one_or_none()
@@ -208,6 +211,7 @@ class ActivityDTO():
 			"maximum_elevation" : self.maximum_elevation,
 			"start_latitude" : self.start_latitude,
 			"start_longitude" : self.start_longitude,
+			"start_gpx_index" : self.start_gpx_index,
 			"type_name" : self.type_name,
 			"athlete_name" : self.athlete_name,
 			"distance_km" : self.distance_km,

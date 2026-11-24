@@ -9,7 +9,7 @@ from flask_alembic import Alembic
 from src import ActivityUploader as AU
 from src import AppInputManager as AIM
 from src import SubTask
-from src import ActivityGraph as AG
+from src import __ActivityGraph as AG
 from src import DatabaseHandler as DBH
 from src.DatabaseHandler import db
 from src.misc import ensure_dir_exists, check_gps_range

@@ -11,7 +11,7 @@ import matplotlib as mpl
 from PIL import Image, ImageDraw
 
 from src import OSMMapDownloader as osmmd
-from src import ActivityGraph as AG
+from src import __ActivityGraph as AG
 from src import ColorManager as CM
 from src.SubTask import SubTask
 

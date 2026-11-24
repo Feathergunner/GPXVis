@@ -6,6 +6,8 @@ BASE_LINEWIDTH = 1
 # default colors:
 LINECOLORS = ["red", "blue", "green", "purple", "magenta", "orange", "cyan", "pink", "olive"]
 
+#VALID_KEY_TYPES = ["COLOR_KEYS_CATEGORICAL", "COLOR_KEYS_CONTINUOUS", "DATA_KEYS_CATEGORICAL", "DATA_KEYS_CONTINUOUS"]
+
 COLOR_KEYS_CATEGORICAL = [
 	"singular",			# everything the same color
 	"athlete",			# color by athlete
@@ -26,6 +28,17 @@ DATA_KEYS_CATEGORICAL = [
 	"total distance",
 	"total duration",
 	"total elevation",
+]
+
+DATA_KEYS_CONTINUOUS = [
+	"distance",
+	"time",
+	"elevation",
+	"elevation relative",
+	"elevation gain",
+	"speed",
+	"pace",
+	"slope"
 ]
 
 # for html form creation:
@@ -62,6 +75,8 @@ PLOT_WIDTH = 16
 PLOT_HEIGHT = 9
 PLOT_DPI = 100
 
+
+'''
 KEY_UNITS = {
 	"distance" : "km",
 	"time" : "h:min",
@@ -112,3 +127,34 @@ KEY_RANGE_MAX = {
 	"total duration" : None,
 	"total elevation" : None,
 }
+
+
+def format_data(key, value):
+	if key == "distance":
+		dist_km = value/1000
+		return f"{dist_km:03.1f}"
+	elif key == "time":
+		return format_time_hours(value)
+	elif key == "elevation":
+		return f"{value:.0f}"
+	elif key == "elevation relative":
+		return f"{value:.0f}"
+	elif key == "elevation gain":
+		return f"{value:.0f}"
+	elif key == "slope":
+		slope_pct = value*100
+		return f"{slope_pct:2.0f}"
+	elif key == "pace":
+		return float_to_pace_str(value)
+	elif key == "speed":
+		return f"{value:.1f}"
+	elif key == "date":
+		return datetime.fromtimestamp(value).date()
+	elif key == "total distance":
+		dist_km = value/1000
+		return f"{dist_km:03.1f}"
+	elif key == "total duration":
+		return format_time_hours(value)
+	elif key == "total elevation":
+		return f"{value:.0f}"	
+'''
