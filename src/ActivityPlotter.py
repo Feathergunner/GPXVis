@@ -16,7 +16,7 @@ from src.misc import ensure_dir_exists, ensure_unique_filename
 #
 #from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str
 #from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON
-from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL, PLOT_WIDTH, PLOT_HEIGHT, PLOT_DPI, COLOR_KEYS_CONTINUOUS
+from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL, PLOT_WIDTH, PLOT_HEIGHT, PLOT_DPI, COLOR_KEYS_CONTINUOUS, COLOR_KEYS_CATEGORICAL
 
 
 class SpecificationObject():
@@ -140,7 +140,7 @@ class Activity():
 		self.splits = AP.construct_splits(self.nodelist, split_type, split_size)
 
 	def _get_color_for_split(self, split:AP.Split, pso:PlotSpecificationObject, cm:CM.ColorManager):
-		if pso.key_color.key in DATA_KEYS_CATEGORICAL:
+		if pso.key_color.key in DATA_KEYS_CATEGORICAL + COLOR_KEYS_CATEGORICAL:
 			return cm.get_color_by_activity(self.activity_dto)
 		else:
 			return cm.get_color_by_split(split)
@@ -183,7 +183,6 @@ class Activity():
 						self.colors.append(self._get_color_for_split(split, pso, cm))
 					else:
 						self.colors.append(self._get_color_for_split(split, pso, cm))
-		#print ("activity colors:", self.colors)
 
 	def construct_routepoints(self, mso:MapSpecificationObject, cm:CM.ColorManager):
 		# given MapSpecificationObject and ColorManager, construct x, y and colors for plotting
@@ -222,13 +221,16 @@ class ActivityPlotter(SubTask):
 		return plotname
 
 	def _setup_colorbar(self, so:SpecificationObject):
-		self.cm = CM.ColorManager(self, so)
-		cmmap_norm = mpl.colors.Normalize(vmin=self.cm.min_value, vmax=self.cm.max_value)
+		cmmap_norm = mpl.colors.Normalize(vmin=self.cm.get_sanitized_value(self.cm.min_value), vmax=self.cm.get_sanitized_value(self.cm.max_value))
+		#cmmap_norm = mpl.colors.Normalize(vmin=self.cm.min_value, vmax=self.cm.max_value)
 		cmap = mpl.colormaps[self.cm.colormap_name]
 		sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
 		cbar = plt.colorbar(sm, ax=self.axes, orientation='horizontal', pad=0.1, aspect=30)
 		color_ticks, color_tick_labels = self.cm.get_color_legend_data()
-		cbar.set_label(so.key_color.label)
+		colorbar_label = so.key_color.label
+		if len(so.key_color.unit) > 0:
+			colorbar_label += " ("+so.key_color.unit+")"
+		cbar.set_label(colorbar_label)
 		cbar.set_ticks(color_ticks)
 		cbar.set_ticklabels(color_tick_labels)
 
@@ -312,7 +314,9 @@ class ActivityDataPlotter(ActivityPlotter):
 	def plot_data(self, filenamesuffix:str=""):
 		# init plot:
 		self.figure, self.axes = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT), dpi=PLOT_DPI)
-		self._setup_colorbar(self.pso)
+		self.cm = CM.ColorManager(self, self.pso)
+		if not self.pso.key_color.key in DATA_KEYS_CATEGORICAL+COLOR_KEYS_CATEGORICAL:
+			self._setup_colorbar(self.pso)
 		self._construct_plotdata()
 		self._setup_plot()
 		self._setup_plot_axes()

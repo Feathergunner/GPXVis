@@ -61,16 +61,16 @@ ALL_KEYS = {
 		"slope",
 		"slope",
 		"%",
-		lambda val: f"{val/100:2.0f}",
-		-0.5,
-		0.5),
+		lambda val: f"{val:2.0f}%",
+		-50,
+		50),
 	"slope_max" : PlotAxisKey(
 		"slope_max",
 		"maximum slope",
 		"%",
-		lambda val: f"{val/100:2.0f}",
-		-0.5,
-		0.5),
+		lambda val: f"{val:2.0f}%",
+		-50,
+		50),
 	"pace" : PlotAxisKey(
 		"pace",
 		"pace",
@@ -211,22 +211,22 @@ class ColorManager():
 			# find all athlete_ids, assign each a unique color_id
 			number_of_athletes = 0
 			for activity in self.plotter.activities:
-				if activity.athlete_id not in self.athlete_id_to_color_id:
-					self.athlete_id_to_color_id[activity.athlete_id] = number_of_athletes
+				if activity.activity_dto.athlete_id not in self.athlete_id_to_color_id:
+					self.athlete_id_to_color_id[activity.activity_dto.athlete_id] = number_of_athletes
 					number_of_athletes += 1
 
 		elif self.color_key.key == "activitytype":
 			# find all activitytype_ids, assign each a unique color_id
 			number_of_types = 0
 			for activity in self.plotter.activities:
-				if activity.activitytype_id not in self.type_id_to_color_id:
-					self.type_id_to_color_id[activity.activitytype_id] = number_of_types
+				if activity.activity_dto.activitytype_id not in self.type_id_to_color_id:
+					self.type_id_to_color_id[activity.activity_dto.activitytype_id] = number_of_types
 					number_of_types += 1
 
 		elif self.color_key.key == "activity":
 			# assign unique color id to each activity:
 			# (note that actual colors are not unique, since only colors from COLORS_CATEGORICAL are used)
-			self.activity_id_to_color_id = {self.plotter.activities[k].id : k for k in range(len(self.plotter.activities))}
+			self.activity_id_to_color_id = {self.plotter.activities[k].activity_dto.id : k for k in range(len(self.plotter.activities))}
 
 		#elif self.color_key.key == "date":
 		#	self.colormap_name = "viridis"
@@ -251,7 +251,7 @@ class ColorManager():
 					activity_value = activity.activity_dto.datetime
 					if self.min_value is None or activity_value < self.min_value:
 						self.min_value = activity_value
-					if self.max_value is None or activity_value > self.min_value:
+					if self.max_value is None or activity_value > self.max_value:
 						self.max_value = activity_value
 			else:
 				for activity in self.plotter.activities:
@@ -268,23 +268,27 @@ class ColorManager():
 				self.max_value = min(self.max_value, self.color_key.range_max)
 			# construct ticks and labels for colorbar:
 			tick_stepsize = (self.max_value-self.min_value)/10
-			self.continuous_ticks = [self.min_value+i*tick_stepsize for i in range(10)]
+			self.continuous_ticks = [self.min_value+i*tick_stepsize for i in range(11)]
 			self.continuous_ticks_labels = [self.color_key.format(t) for t in self.continuous_ticks]
+			self.continuous_ticks = [self.get_sanitized_value(ct) for ct in self.continuous_ticks]
 
-			self.min_value = self._sanitize_value(self.min_value)
-			self.max_value = self._sanitize_value(self.max_value)
+			print (self.continuous_ticks)
+			print (self.continuous_ticks_labels)
+
+			#self.min_value = self._sanitize_value(self.min_value)
+			#self.max_value = self._sanitize_value(self.max_value)
 
 	def _get_color_categorical(self, color_id):
 		return COLORS_CATEGORICAL[color_id%len(COLORS_CATEGORICAL)]
 
 	def _get_color_continuous(self, value):
 		# determine relative value using lower and upper bound of value range
-		relative_value = (self._sanitize_value(value)-self.min_value)/(self.max_value-self.min_value)
+		relative_value = (self.get_sanitized_value(value)-self.get_sanitized_value(self.min_value))/(self.get_sanitized_value(self.max_value)-self.get_sanitized_value(self.min_value))
 		# use colormap to get a color
 		color = mpl.colormaps[self.colormap_name](relative_value)
 		return color
 
-	def _sanitize_value(self, value):
+	def get_sanitized_value(self, value):
 		if self.color_key.key == "time_since_start":
 			return value.total_seconds()
 		elif self.color_key.key == "date":
@@ -293,10 +297,10 @@ class ColorManager():
 			return value
 
 	def get_color_legend_data(self):
-		if self.color_key.key in COLOR_KEYS_CONTINUOUS:
-			return (self.continuous_ticks, self.continuous_ticks_labels)
-		else:
-			return ([],[])
+		#if self.color_key.key in COLOR_KEYS_CONTINUOUS:
+		return (self.continuous_ticks, self.continuous_ticks_labels)
+		#else:
+		#	return ([],[])
 
 	def get_color(self, x):
 		return "blue"
