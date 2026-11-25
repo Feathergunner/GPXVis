@@ -12,177 +12,11 @@ from src.SubTask import SubTask
 from src import ColorManager as CM
 from src import ActivityPath as AP
 from src import DatabaseHandler as DBH
-from src.misc import format_time_hours, float_to_pace_str, ensure_dir_exists, ensure_unique_filename
+from src.misc import ensure_dir_exists, ensure_unique_filename
 #
 #from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str
 #from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON
 from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL, PLOT_WIDTH, PLOT_HEIGHT, PLOT_DPI, COLOR_KEYS_CONTINUOUS
-
-class PlotAxisKey():
-	def __init__(self,
-			key:str,
-			label:str,
-			unit:str,
-			format,
-			range_min = None,
-			range_max = None):
-		
-		self.key = key
-		self.label = label
-		self.unit = unit
-		self.format = format
-		self.range_min = range_min
-		self.range_max = range_max
-
-ALL_KEYS = {
-	"distance" : PlotAxisKey(
-		"distance_since_start",
-		"distance",
-		"km",
-		lambda val: f"{val/1000:03.1f}",
-		0),
-	"time" : PlotAxisKey(
-		"time_since_start",
-		"time",
-		"h:min:sec",
-		format_time_hours,
-		0),
-	"elevation" : PlotAxisKey(
-		"elevation",
-		"elevation",
-		"m",
-		lambda val: f"{val:.0f}"),
-	"elevation relative" : PlotAxisKey(
-		"elevation_relative",
-		"elevation relative to start",
-		"m",
-		lambda val: f"{val:.0f}"),
-	"elevation gain" : PlotAxisKey(
-		"elevation_gain_since_start",
-		"elevation gain",
-		"m",
-		lambda val: f"{val:.0f}",
-		0),
-	"slope" : PlotAxisKey(
-		"slope",
-		"slope",
-		"%",
-		lambda val: f"{val/100:2.0f}",
-		-0.5,
-		0.5),
-	"slope_max" : PlotAxisKey(
-		"slope_max",
-		"maximum slope",
-		"%",
-		lambda val: f"{val/100:2.0f}",
-		-0.5,
-		0.5),
-	"pace" : PlotAxisKey(
-		"pace",
-		"pace",
-		"min/km",
-		float_to_pace_str,
-		2,
-		30),
-	"pace_best" : PlotAxisKey(
-		"pace_best",
-		"fastest pace",
-		"min/km",
-		float_to_pace_str,
-		2,
-		30),
-	"speed" : PlotAxisKey(
-		"speed",
-		"speed",
-		"km/h",
-		lambda val: f"{val:.1f}",
-		2,
-		30),
-	"speed_best" : PlotAxisKey(
-		"speed_best",
-		"fastest speed",
-		"km/h",
-		lambda val: f"{val:.1f}",
-		2,
-		30),
-	"heartrate" : PlotAxisKey(
-		"heartrate",
-		"heartrate",
-		"bpm",
-		lambda val: f"{val:.0f}",
-		30,
-		300),
-	"heartrate_max" : PlotAxisKey(
-		"heartrate_max",
-		"maximum heartrate",
-		"bpm",
-		lambda val: f"{val:.0f}",
-		30,
-		300),
-	"cadence" : PlotAxisKey(
-		"cadence",
-		"cadence",
-		"spm",
-		lambda val: f"{val:.0f}",
-		0),
-	"athlete" : PlotAxisKey(
-		"athlete_name",
-		"athlete name",
-		"",
-		lambda val:val),
-	"activitytype" : PlotAxisKey(
-		"type_name",
-		"activitytype",
-		"",
-		lambda val:val),
-	"date" : PlotAxisKey(
-		"date",
-		"date",
-		"YYYY-MM-DD",
-		lambda val: datetime.fromtimestamp(val).date()),
-	#"pace average" : PlotAxisKey(
-	#	"pace average",
-	#	"average pace",
-	#	"min/km",
-	#	float_to_pace_str,
-	#	2,
-	#	30),
-	#"speed average" : PlotAxisKey(
-	#	"speed average",
-	#	"average speed",
-	#	"km/h",
-	#	lambda val: f"{val:.1f}",
-	#	2,
-	#	30),
-	#"distance total" : PlotAxisKey(
-	#	"distance total",
-	#	"total distance",
-	#	"km",
-	#	lambda val: f"{val/1000:03.1f}",
-	#	0),
-	#"duration total" : PlotAxisKey(
-	#	"duration total",
-	#	"total duration",
-	#	"h:min:sec",
-	#	format_time_hours,
-	#	0),
-	#"elevation total" : PlotAxisKey(
-	#	"elevation total",
-	#	"total elevation",
-	#	"m",
-	#	lambda val: f"{value:.0f}",
-	#	0),
-	"singular" : PlotAxisKey(
-		"singular",
-		"",
-		"",
-		lambda val: None),
-	"activity" : PlotAxisKey(
-		"activity",
-		"",
-		"",
-		lambda val: val.activity_dto.name)
-}
 
 
 class SpecificationObject():
@@ -291,7 +125,7 @@ class Activity():
 		self.records = recordlist
 
 		# aggregated ativity data:
-		self.full_activity = AP.Split(self.nodelist)
+		self.full_activity = None
 		# activity splits:
 		self.splits = []
 
@@ -300,25 +134,30 @@ class Activity():
 		self.ys = []
 		self.colors = []
 
-	def _init_data(self, split_type, split_size):
+	def init_splits(self, split_type, split_size):		
+		# construct splits:
+		self.full_activity = AP.Split(self.nodelist)
+		self.splits = AP.construct_splits(self.nodelist, split_type, split_size)
+
+	def _get_color_for_split(self, split:AP.Split, pso:PlotSpecificationObject, cm:CM.ColorManager):
+		if pso.key_color.key in DATA_KEYS_CATEGORICAL:
+			return cm.get_color_by_activity(self.activity_dto)
+		else:
+			return cm.get_color_by_split(split)
+
+	def construct_plotpoints(self, pso:PlotSpecificationObject, cm:CM.ColorManager):
+		# given PlotSpecificationObject and ColorManager, construct x, y and colors for plotting
 		# reset data to be sure:
 		self.xs = []
 		self.ys = []
 		self.colors = []
-		
-		# construct splits:
-		self.splits = AP.construct_splits(self.nodelist, split_type, split_size)
 
-	def construct_plotpoints(self, pso:PlotSpecificationObject, cm:CM.ColorManager):
-		# given PlotSpecificationObject and ColorManager, construct x, y and colors for plotting
-		self._init_data(pso.split_type, pso.split_size)
-
-		# construct x,y,colors
 		if pso.activity_aggregates:
 			# one datapoint per activity
 			# SCATTERPLOT:
 			self.xs.append(getattr(self.full_activity, pso.key_x.key))
 			self.ys.append(getattr(self.full_activity, pso.key_y.key))
+			self.colors.append(cm.get_color_by_activity(self.activity_dto))
 
 		elif pso.split_aggregates:
 			# one datapoint per split
@@ -326,7 +165,7 @@ class Activity():
 			for split in self.splits:
 				self.xs.append(getattr(split, pso.key_x.key))
 				self.ys.append(getattr(split, pso.key_y.key))
-				self.colors.append(cm.get_color_by_split(split))
+				self.colors.append(self._get_color_for_split(split, pso, cm))
 		else:
 			# one datapoint per node
 			# LINEPLOT
@@ -339,11 +178,12 @@ class Activity():
 					self.xs.append(np.asarray([getattr(node, pso.key_x.key) for node in split.nodelist]))
 					self.ys.append(np.asarray([getattr(node, pso.key_y.key) for node in split.nodelist]))
 					if pso.records_highlight:
-						## todo: set highlight color
+						## todo: set highlight color for nodes within record segments:
 						## and linewidth(?)
-						self.colors.append(cm.get_color_by_split(split))
+						self.colors.append(self._get_color_for_split(split, pso, cm))
 					else:
-						self.colors.append(cm.get_color_by_split(split))
+						self.colors.append(self._get_color_for_split(split, pso, cm))
+		#print ("activity colors:", self.colors)
 
 	def construct_routepoints(self, mso:MapSpecificationObject, cm:CM.ColorManager):
 		# given MapSpecificationObject and ColorManager, construct x, y and colors for plotting
@@ -362,10 +202,10 @@ class Activity():
 
 
 class ActivityPlotter(SubTask):
-	def __init__(self, activities:list, so:SpecificationObject):
+	def __init__(self, activities:list):
 		self.activities = activities
-		self.cm = CM.ColorManager(so.key_color.key, [act.activity_dto for act in self.activities])
 
+		self.cm = None
 		self.figure = None
 		self.axes = None
 		self.plottype = None
@@ -381,22 +221,26 @@ class ActivityPlotter(SubTask):
 			plotname += "_"+suffix
 		return plotname
 
-	def _setup_colorbar(self, so):
-		cmmap_norm = mpl.colors.Normalize(vmin=self.cm.min_value.toordinal(), vmax=self.cm.max_value.toordinal())
+	def _setup_colorbar(self, so:SpecificationObject):
+		self.cm = CM.ColorManager(self, so)
+		cmmap_norm = mpl.colors.Normalize(vmin=self.cm.min_value, vmax=self.cm.max_value)
 		cmap = mpl.colormaps[self.cm.colormap_name]
 		sm = mpl.cm.ScalarMappable(norm=cmmap_norm, cmap=cmap)
 		cbar = plt.colorbar(sm, ax=self.axes, orientation='horizontal', pad=0.1, aspect=30)
 		color_ticks, color_tick_labels = self.cm.get_color_legend_data()
 		cbar.set_label(so.key_color.label)
 		cbar.set_ticks(color_ticks)
-		cbar.sest_ticklabels(color_tick_labels)
+		cbar.set_ticklabels(color_tick_labels)
 
 
 class ActivityDataPlotter(ActivityPlotter):
 	def __init__(self, activities:list, pso:PlotSpecificationObject):
 		self.activities = activities
 		self.pso = pso
-		super().__init__(activities, pso)
+		super().__init__(activities)
+
+		for activity in self.activities:
+			activity.init_splits(self.pso.split_type, self.pso.split_size)
 
 	def _construct_plotname(self, suffix:str) -> str:
 		plotname = super()._construct_plotname(self.pso, suffix)
@@ -426,8 +270,6 @@ class ActivityDataPlotter(ActivityPlotter):
 
 
 	def _setup_plot_axes(self):
-		self.figure, self.axes = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT), dpi=PLOT_DPI)
-
 		if self.pso.key_x.range_min is not None:
 			axis_min_x = max(self.min_x, self.pso.key_x.range_min)
 		else:
@@ -469,6 +311,8 @@ class ActivityDataPlotter(ActivityPlotter):
 
 	def plot_data(self, filenamesuffix:str=""):
 		# init plot:
+		self.figure, self.axes = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT), dpi=PLOT_DPI)
+		self._setup_colorbar(self.pso)
 		self._construct_plotdata()
 		self._setup_plot()
 		self._setup_plot_axes()
@@ -481,15 +325,12 @@ class ActivityDataPlotter(ActivityPlotter):
 					points = np.asarray([[self.activities[i].xs[j][k], self.activities[i].ys[j][k]] for k in range(len(self.activities[i].xs[j]))])
 					#print (points)
 					segments.append(points)
-				self.axes.add_collection(LineCollection(segments, colors=self.activities[i].colors[j]))
+				self.axes.add_collection(LineCollection(segments, colors=[self.activities[i].colors[j] for j in range(len(self.activities[i].splits))]))
 				#self.axes.plot(self.activities[i].xs, self.activities[i].ys, color=self.activities[i].colors)
 			elif self.plottype == "scatterplot":
 				self.axes.scatter(self.activities[i].xs, self.activities[i].ys, color=self.activities[i].colors)
 			if (i>0 and i%10 == 0):
 				self.progress += 1
-
-		#if self.pso.key_color in COLOR_KEYS_CONTINUOUS:
-		#self._setup_colorbar(self.pso)
 
 		# save plot:
 		outputfolder = os.path.join("output", "activities")

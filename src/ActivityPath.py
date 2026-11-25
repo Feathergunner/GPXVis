@@ -108,6 +108,7 @@ class Split():
 
 		# name: optional string, intendet to be used for splits that represent records
 		self.name = name
+		self.time_since_start = nodelist[0].time_since_start
 
 		self.length = sum([node.length for node in nodelist])
 		self.time_delta = sum([node.time_delta for node in nodelist], datetime.timedelta())

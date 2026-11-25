@@ -11,6 +11,7 @@ from org import GPX_DIR
 
 from src import ActivityPath as AP
 from src import ActivityPlotter as Plotter
+from src import ColorManager as CM
 
 class AppInputManager(SubTask):
 	def __init__(self, taskname:str, taskweight:int):
@@ -144,10 +145,11 @@ class AppInputManagerActivityData(AppInputManager):
 		# plot daragraph of activities:
 		nodelists = [AP.construct_pathnodes_from_activitydto(act_dto) for act_dto in self.activities]
 		activities = [Plotter.Activity(self.activities[i], nodelists[i]) for i in range(len(self.activities))]
+
 		pso = Plotter.PlotSpecificationObject(
-			key_x=Plotter.ALL_KEYS[self.axis_x_key],
-			key_y=Plotter.ALL_KEYS[self.axis_y_key],
-			key_color=Plotter.ALL_KEYS[self.color_key])
+			key_x=CM.ALL_KEYS[self.axis_x_key],
+			key_y=CM.ALL_KEYS[self.axis_y_key],
+			key_color=CM.ALL_KEYS[self.color_key])
 		plotter = Plotter.ActivityDataPlotter(activities, pso)
 		self.add_task_child(plotter)
 		self.outputfilepath = plotter.plot_data()
