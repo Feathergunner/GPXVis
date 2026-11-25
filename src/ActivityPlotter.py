@@ -3,8 +3,9 @@
 
 import os
 import numpy as np
-from matplotlib import pyplot as plt
 import matplotlib as mpl
+from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection
 from datetime import datetime
 
 from src.SubTask import SubTask
@@ -314,32 +315,35 @@ class Activity():
 
 		# construct x,y,colors
 		if pso.activity_aggregates:
-			# one datapoint per activity:
+			# one datapoint per activity
+			# SCATTERPLOT:
 			self.xs.append(getattr(self.full_activity, pso.key_x.key))
 			self.ys.append(getattr(self.full_activity, pso.key_y.key))
 
 		elif pso.split_aggregates:
 			# one datapoint per split
+			# SCATTERPLOT:
 			for split in self.splits:
 				self.xs.append(getattr(split, pso.key_x.key))
 				self.ys.append(getattr(split, pso.key_y.key))
 				self.colors.append(cm.get_color_by_split(split))
 		else:
 			# one datapoint per node
+			# LINEPLOT
 			if pso.records_only:
 				## todo: plot only records
-				pass
+				for record in self.recordlist:
+					continue
 			else:
 				for split in self.splits:
-					for node in split.nodelist:
-						self.xs.append(getattr(node, pso.key_x.key))
-						self.ys.append(getattr(node, pso.key_y.key))
-						if pso.records_highlight:
-							## todo: set highlight color
-							## and linewidth(?)
-							self.colors.append(cm.get_color_by_split(split))
-						else:
-							self.colors.append(cm.get_color_by_split(split))
+					self.xs.append(np.asarray([getattr(node, pso.key_x.key) for node in split.nodelist]))
+					self.ys.append(np.asarray([getattr(node, pso.key_y.key) for node in split.nodelist]))
+					if pso.records_highlight:
+						## todo: set highlight color
+						## and linewidth(?)
+						self.colors.append(cm.get_color_by_split(split))
+					else:
+						self.colors.append(cm.get_color_by_split(split))
 
 	def construct_routepoints(self, mso:MapSpecificationObject, cm:CM.ColorManager):
 		# given MapSpecificationObject and ColorManager, construct x, y and colors for plotting
@@ -409,11 +413,17 @@ class ActivityDataPlotter(ActivityPlotter):
 		for activity in self.activities:
 			activity.construct_plotpoints(self.pso, self.cm)
 
-		self.min_x = min([min(activity.xs) for activity in self.activities])
-		self.max_x = max([max(activity.xs) for activity in self.activities])
+		if self.plottype == "scatterplot":
+			self.min_x = min([min(activity.xs) for activity in self.activities])
+			self.max_x = max([max(activity.xs) for activity in self.activities])
+			self.min_y = min([min(activity.ys) for activity in self.activities])
+			self.max_y = max([max(activity.ys) for activity in self.activities])
+		else:
+			self.min_x = min([min([min(split) for split in activity.xs]) for activity in self.activities])
+			self.max_x = max([max([max(split) for split in activity.xs]) for activity in self.activities])
+			self.min_y = min([min([min(split) for split in activity.ys]) for activity in self.activities])
+			self.max_y = max([max([max(split) for split in activity.ys]) for activity in self.activities])
 
-		self.min_y = min([min(activity.ys) for activity in self.activities])
-		self.max_y = max([max(activity.ys) for activity in self.activities])
 
 	def _setup_plot_axes(self):
 		self.figure, self.axes = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT), dpi=PLOT_DPI)
@@ -466,9 +476,15 @@ class ActivityDataPlotter(ActivityPlotter):
 		# plot data:
 		for i in range(len(self.activities)):
 			if self.plottype == "lineplot":
-				self.axes.plot(self.activities[i].xs, self.activities[i].ys, color=self.cm.get_color(self.activities[i]))
+				segments = []
+				for j in range(len(self.activities[i].splits)):
+					points = np.asarray([[self.activities[i].xs[j][k], self.activities[i].ys[j][k]] for k in range(len(self.activities[i].xs[j]))])
+					#print (points)
+					segments.append(points)
+				self.axes.add_collection(LineCollection(segments, colors=self.activities[i].colors[j]))
+				#self.axes.plot(self.activities[i].xs, self.activities[i].ys, color=self.activities[i].colors)
 			elif self.plottype == "scatterplot":
-				self.axes.scatter(self.activities[i].xs, self.activities[i].ys, color=self.cm.get_color(self.activities[i]))
+				self.axes.scatter(self.activities[i].xs, self.activities[i].ys, color=self.activities[i].colors)
 			if (i>0 and i%10 == 0):
 				self.progress += 1
 
