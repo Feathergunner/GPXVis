@@ -56,35 +56,43 @@ and ffmpeg (to generate the animations).
 - [ ] Interval of Colorbar in plots not always correct. 
 
 ## Future Features / ToDos
+### UI & Plots:
 - [ ] Improve maps:
   - [ ] Make map margin (around plotted route) equal in all directions.
   - [ ] Labels for maps.
 - [ ] Improve plots:
-  - [ ]  Improve design.
-  - [ ]  Support more attributes.
+  - [ ]  Improve design: meaningful ticks (e.g. 0, 10, 20 instead of -2, 8.7, 17.2,...).
+  - [ ]  Support more attributes (e.g. aggregated data).
+  - [ ]  Support aggregate multiple activities (e.g. monthly, yearly).
   - [x]  Lineplot/barplot/scatterplot depending on data.
   - [x]  Meaningful colors.
-- [ ] Improve and unify datastructures.
+- [ ] Generate sharepic-style reviews of activities.
+- [ ] Progress bar for uploading activities.
+- [ ] Improve Activity Page:
+  - [ ] Preview image of activity on map (Generate preview image during GPX-file upload).
+  - [ ] Directly plot tour animation from activity view.
+  - [ ] Link from other pages to activity view wherever activities are listed.
+- [ ] Track personal records on activities:
+  - [ ] Display segments on maps.
+  - [x] Improve record list: restrict displayed records, enable sorting.
+  - [x] Plot record graphs.
+- [x] Overview Page for Activities
+- [x] Labels for animations.
+- [x] More options for creating animations (multiple activities at once, zoomed-in map).
+- [x] Improved progress bar (some processes need to provide more informations and stats).
+
+### Code & Functionalities:  
+- [ ] Improve and unify datastructures:
+  - [ ] Unify plotting functionalities in a single class.
+  - [ ] Improve database integration and database code structure.
 - [ ] Improve RouteGraphConstructor.
 - [ ] Track personal records on activities:
   - [x] On generic distances (e.g. 5km, 20km, 21.1km, 42.2km).
   - [ ] On custom segments (create segments from gpx-files).
   - [ ] Records w.r.t. elevation gain (e.g. fastest time for 100m of elevation, independent of distance)
-  - [ ] Display segments on maps.
   - [ ] Records considering the full activity: longest distance, most elevation gain, longest duration
   - [ ] Parse activities for records during upload to database.
-  - [x] Improve record list: restrict displayed records, enable sorting.
-  - [x] Plot record graphs.
-- [ ] Progress bar for uploading activities.
-- [ ] Support for more gpx-annotations, like heartrate.
 - [ ] Build a package with a straightforward-to-use installer.
-- [x] Overview Page for Activities
-- [ ] Improve Activity Page:
-  - [ ] Preview image of activity on map (Generate preview image during GPX-file upload).
-  - [ ] Directly plot tour animation from activity view.
-  - [ ] Link from other pages to activity view wherever activities are listed.
+- [ ] Support for more gpx-annotations (heartrate, cadence).
 - [x] Database version tracking, to allow future database extensions.
-- [x] Labels for animations.
-- [x] More options for creating animations (multiple activities at once, zoomed-in map).
 - [x] QOL features: default parameters.
-- [x] Improved progress bar (some processes need to provide more informations and stats).
