@@ -43,6 +43,9 @@ class PathNode():
 	def __repr__(self):
 		return str(self)
 
+	def is_valid(self):
+		return self.latitude != 0 or self.longitude != 0
+
 	def get_position(self):
 		return (self.get_longitude(), self.get_latitude())
 
@@ -93,6 +96,12 @@ class ActivityNode(PathNode):
 			self.pace = 0
 			self.slope = 0
 			self.speed = 0
+
+	def __str__(self):
+		_str = super().__str__()
+		_str += "\n\tdistance since start: "+str(self.distance_since_start)+"\n\tlength: "+str(self.length)
+		return _str
+
 
 class Split():
 	VALID_SPLIT_DIMENSIONS = ["length", "time_delta", "elevation_gain"]
@@ -157,8 +166,9 @@ def construct_pathnodes(gpxdata, start_gpx_index:int=0) -> list:
 				start_index = 0
 			for p_i in range(start_index, len(segment.points)):
 				new_node = ActivityNode(segment.points[p_i], predecessor)
-				nodelist.append(new_node)
-				predecessor = new_node
+				if new_node.is_valid():
+					nodelist.append(new_node)
+					predecessor = new_node
 	return nodelist
 
 def construct_pathnodes_from_activitydto(activity_dto:DBH.ActivityDTO) -> list:
