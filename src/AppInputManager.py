@@ -10,13 +10,13 @@ from src.SubTask import SubTask
 from org import GPX_DIR
 
 from src import ActivityPath as AP
-from src import ActivityPlotter as Plotter
-from src import ColorManager as CM
+from src.plotting import ActivityPlotter as Plotter
+from src.plotting import AxisSpecs
 
 class AppInputManager(SubTask):
 	def __init__(self, taskname:str, taskweight:int):
 		self.map_zoom_lvl = None
-		self.color_key = None
+		self.color_axis_id = None
 		self.filename_prefix = None
 		self.outputfilepath = None
 		super().__init__(taskname, taskweight)
@@ -39,8 +39,8 @@ class AppInputManager(SubTask):
 	def set_filename_prefix(self, filename:str):
 		self.filename_prefix = filename
 
-	def set_color_key(self, color_key:str):
-		self.color_key = color_key
+	def set_color_axis(self, color_key:int):
+		self.color_axis_id = color_key
 
 class AppInputManagerRouteMap(AppInputManager):
 	def __init__(self):
@@ -119,7 +119,7 @@ class AppInputManagerTourAnimation(AppInputManager):
 		#	activitygraphs.append(agc.build_from_database(activity))
 		#
 		## plot animation:
-		#tgp = TGP.TourGraphPlotter(activitygraphs, self.map_zoom_lvl, color_key=self.color_key, add_legend=len(activitygraphs)>1, add_label=len(activitygraphs)<2, add_profile=len(activitygraphs)<2)
+		#tgp = TGP.TourGraphPlotter(activitygraphs, self.map_zoom_lvl, color_key=self.color_axis_id, add_legend=len(activitygraphs)>1, add_label=len(activitygraphs)<2, add_profile=len(activitygraphs)<2)
 		#self.add_task_child(tgp)
 		#tgp.create_tour_animation(split_type="time", split_size=self.speedup//self.fps, fps=self.fps, synchronize_start="no", zoom_in=self.zoom_in, result_filename=self.filename_prefix)
 		self.finish_progress()
@@ -127,19 +127,19 @@ class AppInputManagerTourAnimation(AppInputManager):
 class AppInputManagerActivityData(AppInputManager):
 	def __init__(self):
 		super().__init__("AppInputManagerActivityData",1)
-		self.axis_x_key = None
-		self.axis_y_key = None
+		self.axis_x_id = None
+		self.axis_y_id = None
 
 	def __str__(self):
 		retstr = super().__str__()
-		retstr += "Axis keys: ("+str(self.axis_x_key)+","+str(self.axis_y_key)+")\n"
+		retstr += "Axis keys: ("+str(self.axis_x_id)+","+str(self.axis_y_id)+")\n"
 		return retstr
 
-	def set_key_x(self, key:str):
-		self.axis_x_key = key
+	def set_key_x(self, key:int):
+		self.axis_x_id = key
 
-	def set_key_y(self, key:str):
-		self.axis_y_key = key
+	def set_key_y(self, key:int):
+		self.axis_y_id = key
 
 	def run_plotter(self):
 		# plot daragraph of activities:
@@ -147,9 +147,9 @@ class AppInputManagerActivityData(AppInputManager):
 		activities = [Plotter.Activity(self.activities[i], nodelists[i]) for i in range(len(self.activities))]
 
 		pso = Plotter.PlotSpecificationObject(
-			key_x=CM.ALL_KEYS[self.axis_x_key],
-			key_y=CM.ALL_KEYS[self.axis_y_key],
-			key_color=CM.ALL_KEYS[self.color_key])
+			key_x=AxisSpecs.ALL_AXES[self.axis_x_id],
+			key_y=AxisSpecs.ALL_AXES[self.axis_y_id],
+			key_color=AxisSpecs.ALL_AXES[self.color_axis_id])
 		plotter = Plotter.ActivityDataPlotter(activities, pso)
 		self.add_task_child(plotter)
 		self.outputfilepath = plotter.plot_data()
@@ -159,8 +159,8 @@ class AppInputManagerActivityData(AppInputManager):
 class AppInputManagerRecordData(AppInputManagerActivityData):
 	def __init__(self):
 		AppInputManager.__init__(self, "AppInputManagerRecordData", 1)
-		self.axis_x_key = None
-		self.axis_y_key = None
+		self.axis_x_id = None
+		self.axis_y_id = None
 		self.timeframes = None
 
 	def set_timeframes(self, min_times:list, max_times:list):

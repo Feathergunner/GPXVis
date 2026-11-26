@@ -16,7 +16,8 @@ from src.misc import ensure_dir_exists, check_gps_range
 from src.misc_files import get_metadata_from_file
 
 from org import GPX_DIR
-from src.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT, AXIS_DOM_COLOR
+#from src.plotting.org_plotting import AXIS_DIM_CONT, AXIS_DIM_CAT, AXIS_DOM_COLOR
+from src.plotting.AxisSpecs import ALL_AXES_DICT
 
 app = Flask(__name__)
 # init database:
@@ -76,9 +77,7 @@ def statistics():
 		"statistics.html",
 		athletes=_athletes,
 		activity_types=_activity_types,
-		axisdim_cont= AXIS_DIM_CONT,
-		axisdim_cat=AXIS_DIM_CAT,
-		axisdim_color=AXIS_DOM_COLOR,
+		axisspecs=ALL_AXES_DICT,
 		default_setting=_defaults)
 
 @app.route("/maps")
@@ -135,9 +134,7 @@ def records():
 		activity_types=_activity_types,
 		recorddata=records_by_type,
 		recordtypes=recordtypes_by_acttype,
-		axisdim_cont= AXIS_DIM_CONT,
-		axisdim_cat=AXIS_DIM_CAT,
-		axisdim_color=AXIS_DOM_COLOR,
+		axisspecs=ALL_AXES_DICT,
 		default_setting=_defaults)
 
 @app.route("/settings")
@@ -326,7 +323,7 @@ def runTourAnimation():
 
 	aim_ta.set_activities(activities)
 	aim_ta.set_zoom(data.get("mapzoom", ""))
-	aim_ta.set_color_key(data.get("color_key", ""))
+	aim_ta.set_color_axis(int(data.get("color_key", "")))
 	aim_ta.set_animation_settings(int(data.get("animation_speedup", "")), int(data.get("animation_fps", "")), bool(data.get("animation_zoom_in", "")))
 	aim_ta.set_filename_prefix(data.get("filename", ""))
 	
@@ -382,14 +379,12 @@ def run_DataPlotter():
 	current_computation = "DataPlotter"
 	data = request.get_json()
 	activity_ids = data.get("activity_ids", "")
-	axis_x = data.get("axis_x", "")
-	axis_y = data.get("axis_y", "")
 	filename = data.get("filename", "")
 
 	aim_ad.set_activities(DBH.get_activities_by_ids(activity_ids))
-	aim_ad.set_key_x(axis_x)
-	aim_ad.set_key_y(axis_y)
-	aim_ad.set_color_key(data.get("color_key", ""))
+	aim_ad.set_key_x(int(data.get("axis_x", "")))
+	aim_ad.set_key_y(int(data.get("axis_y", "")))
+	aim_ad.set_color_axis(int(data.get("color_key", "")))
 	aim_ad.set_filename_prefix(filename)
 
 	current_job = aim_ad
@@ -407,9 +402,6 @@ def run_RecordPlotter():
 	global current_job
 	data = request.get_json()
 	recorddata_ids = data.get("recorddata_ids", "")
-	axis_key_x = data.get("axis_x", "")
-	axis_key_y = data.get("axis_y", "")
-	key_color = data.get("color_key", "")
 	filename = data.get("filename", "")
 
 	records_and_activities = DBH.get_recorddata_and_activity_by_record_ids(recorddata_ids)
@@ -420,9 +412,9 @@ def run_RecordPlotter():
 
 	aim_rd.set_activities(activities)
 	aim_rd.set_timeframes(timeframe_starts, timeframe_ends)
-	aim_rd.set_key_x(axis_key_x)
-	aim_rd.set_key_y(axis_key_y)
-	aim_rd.set_color_key(key_color)
+	aim_rd.set_key_x(int(data.get("axis_x", "")))
+	aim_rd.set_key_y(int(data.get("axis_y", "")))
+	aim_rd.et_color_axis(int(data.get("color_key", "")))
 	aim_rd.set_filename_prefix(filename)
 
 	current_job = aim_rd

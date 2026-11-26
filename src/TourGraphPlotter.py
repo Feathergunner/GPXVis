@@ -12,13 +12,13 @@ from PIL import Image, ImageDraw
 
 from src import OSMMapDownloader as osmmd
 from src import __ActivityGraph as AG
-from src import ColorManager as CM
+from src.plotting import ColorManager as CM
 from src.SubTask import SubTask
 
 from src.misc import ensure_dir_exists, ensure_unique_filename, format_time, format_time_hours
 from src.misc_geometry import get_latlon_vector_length
 from org import GPX_DIR, GPX_DIR_TEST, LAT_HOME, LON_HOME
-from src.org_plotting import LINECOLORS, BASE_LINEWIDTH
+from src.plotting.org_plotting import LINECOLORS, BASE_LINEWIDTH
 
 
 

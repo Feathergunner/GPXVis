@@ -9,14 +9,13 @@ from matplotlib.collections import LineCollection
 from datetime import datetime
 
 from src.SubTask import SubTask
-from src import ColorManager as CM
 from src import ActivityPath as AP
 from src import DatabaseHandler as DBH
-from src.misc import ensure_dir_exists, ensure_unique_filename
-#
-#from src.misc import load_gpx_file, parse_gps_from_gpx, get_timestamp_in_seconds, format_time, format_time_hours, float_to_pace_str
-#from org import GPX_DIR, GPX_DIR_TEST, METER_PER_DEG_LAT, METER_PER_DEG_LON
-from src.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL, PLOT_WIDTH, PLOT_HEIGHT, PLOT_DPI, COLOR_KEYS_CONTINUOUS, COLOR_KEYS_CATEGORICAL
+from src.misc import ensure_dir_exists, ensure_unique_filename, get_sanitized_value
+
+from src.plotting import ColorManager as CM
+from src.plotting import AxisSpecs as AS #import AxisSpecs, AxisDataSource, AXIS_NOAXIS
+from src.plotting.org_plotting import LINECOLORS, DATA_KEYS_CATEGORICAL, PLOT_WIDTH, PLOT_HEIGHT, PLOT_DPI, COLOR_KEYS_CONTINUOUS, COLOR_KEYS_CATEGORICAL
 
 
 class SpecificationObject():
@@ -24,7 +23,7 @@ class SpecificationObject():
 	Base clsas for PlotSpecificationObject and MapSpecificationObject
 	'''
 	def __init__(self,
-			key_color:str="singular",
+			key_color:AS.AxisSpecs=AS.AXIS_NOAXIS,
 			split_type:str="length",
 			split_size:int=1000,
 			records_highlight:bool=False,
@@ -50,9 +49,9 @@ class SpecificationObject():
 
 class PlotSpecificationObject(SpecificationObject):
 	def __init__(self,
-			key_x:str,
-			key_y:str,
-			key_color:str="singular",
+			key_x:AS.AxisSpecs,
+			key_y:AS.AxisSpecs,
+			key_color:AS.AxisSpecs=AS.AXIS_NOAXIS,
 			split_type:str="length",
 			split_size:int=1000,
 			activity_aggregates:bool=False,
@@ -64,11 +63,13 @@ class PlotSpecificationObject(SpecificationObject):
 		self.key_x = key_x
 		self.key_y = key_y
 		
-		self.activity_aggregates = activity_aggregates
+		activity_datasources = [AS.AxisDataSource.ACTIVITY, AS.AxisDataSource.ACTIVITY_DTO]
+		self.activity_aggregates = (key_x.datasource in activity_datasources and key_y.datasource in activity_datasources)
 		# if true, plot will contain only one datapoint for each activity
 		# if false, the parameter split_aggregates defines the plot type
 
-		self.split_aggregates = split_aggregates
+		if not self.activity_aggregates:
+			self.split_aggregates = (key_x.datasource == AS.AxisDataSource.SPLIT or key_y.datasource == AS.AxisDataSource.SPLIT)
 		# if true, plot will contain only one datapoint for each split
 		#	e.g. for all kinds of plots of aggregated data
 		# if false, splits are used for coloring only,
@@ -140,10 +141,34 @@ class Activity():
 		self.splits = AP.construct_splits(self.nodelist, split_type, split_size)
 
 	def _get_color_for_split(self, split:AP.Split, pso:PlotSpecificationObject, cm:CM.ColorManager):
-		if pso.key_color.key in DATA_KEYS_CATEGORICAL + COLOR_KEYS_CATEGORICAL:
-			return cm.get_color_by_activity(self.activity_dto)
-		else:
+		#if pso.key_color.datasource == AS.AxisDataSource.PATHNODE:
+		#	return cm.get_color_by_node(split)
+		if pso.key_color.datasource == AS.AxisDataSource.SPLIT:
 			return cm.get_color_by_split(split)
+		elif pso.key_color.datasource == AS.AxisDataSource.ACTIVITY_DTO:
+			return cm.get_color_by_activity(self)
+		else:
+			return None
+
+	def _get_data(self, key, split:AP.Split=None, node:AP.PathNode=None):
+		data = None
+		if key.datasource == AS.AxisDataSource.PATHNODE:
+			if node is not None:
+				data = getattr(node, key.key)
+		elif key.datasource == AS.AxisDataSource.SPLIT:
+			if split is not None:
+				data = getattr(split, key.key)
+		elif key.datasource == AS.AxisDataSource.ACTIVITY:
+			data = getattr(self.full_activity, key.key)
+		elif key.datasource == AS.AxisDataSource.ACTIVITY_DTO:
+			data = getattr(self.activity_dto, key.key)
+		else:
+			raise Exception("Unknown datasource")
+			return None
+		if key in AS.TIME_AXES:
+			return get_sanitized_value(data)
+		else:
+			return data
 
 	def construct_plotpoints(self, pso:PlotSpecificationObject, cm:CM.ColorManager):
 		# given PlotSpecificationObject and ColorManager, construct x, y and colors for plotting
@@ -152,19 +177,21 @@ class Activity():
 		self.ys = []
 		self.colors = []
 
+		self.init_splits(pso.split_type, pso.split_size)
+
 		if pso.activity_aggregates:
 			# one datapoint per activity
 			# SCATTERPLOT:
-			self.xs.append(getattr(self.full_activity, pso.key_x.key))
-			self.ys.append(getattr(self.full_activity, pso.key_y.key))
-			self.colors.append(cm.get_color_by_activity(self.activity_dto))
+			self.xs.append(self._get_data(pso.key_x))
+			self.ys.append(self._get_data(pso.key_y))
+			self.colors.append(cm.get_color_by_activity(self))
 
 		elif pso.split_aggregates:
 			# one datapoint per split
 			# SCATTERPLOT:
 			for split in self.splits:
-				self.xs.append(getattr(split, pso.key_x.key))
-				self.ys.append(getattr(split, pso.key_y.key))
+				self.xs.append(self._get_data(pso.key_x, split))
+				self.ys.append(self._get_data(pso.key_y, split))
 				self.colors.append(self._get_color_for_split(split, pso, cm))
 		else:
 			# one datapoint per node
@@ -175,8 +202,8 @@ class Activity():
 					continue
 			else:
 				for split in self.splits:
-					self.xs.append(np.asarray([getattr(node, pso.key_x.key) for node in split.nodelist]))
-					self.ys.append(np.asarray([getattr(node, pso.key_y.key) for node in split.nodelist]))
+					self.xs.append(np.asarray([self._get_data(pso.key_x, split, node) for node in split.nodelist]))
+					self.ys.append(np.asarray([self._get_data(pso.key_y, split, node) for node in split.nodelist]))
 					if pso.records_highlight:
 						## todo: set highlight color for nodes within record segments:
 						## and linewidth(?)
@@ -241,16 +268,13 @@ class ActivityDataPlotter(ActivityPlotter):
 		self.pso = pso
 		super().__init__(activities)
 
-		for activity in self.activities:
-			activity.init_splits(self.pso.split_type, self.pso.split_size)
-
 	def _construct_plotname(self, suffix:str) -> str:
 		plotname = super()._construct_plotname(self.pso, suffix)
 		plotname += "_"+self.pso.key_x.label+"_"+self.pso.key_y.label
 		return plotname
 
-	def _setup_plot(self):
-		if self.pso.key_x in DATA_KEYS_CATEGORICAL or self.pso.key_y in DATA_KEYS_CATEGORICAL:
+	def _setup_plottype(self):
+		if not (self.pso.key_x.datasource == AS.AxisDataSource.PATHNODE and self.pso.key_y.datasource == AS.AxisDataSource.PATHNODE):
 			self.plottype = "scatterplot"
 		else:
 			self.plottype = "lineplot"
@@ -272,6 +296,8 @@ class ActivityDataPlotter(ActivityPlotter):
 
 
 	def _setup_plot_axes(self):
+		num_ticks = 10
+		# x-axis:
 		if self.pso.key_x.range_min is not None:
 			axis_min_x = max(self.min_x, self.pso.key_x.range_min)
 		else:
@@ -281,14 +307,14 @@ class ActivityDataPlotter(ActivityPlotter):
 		else:
 			axis_max_x = self.max_x
 		axis_diff_x = axis_max_x-axis_min_x
-		if axis_diff_x > 0:
-			xtickrange = np.arange(axis_min_x, axis_max_x+(axis_diff_x/10), axis_diff_x/10)
+		
+		if get_sanitized_value(axis_diff_x) > 0:
+			xtickrange = [axis_min_x+i*(axis_diff_x/num_ticks) for i in range(num_ticks+1)]#np.arange(axis_min_x, axis_max_x+(axis_diff_x/10), axis_diff_x/10)
 		else:
 			xtickrange = [axis_min_x]
 		xticklabels = [self.pso.key_x.format(x) for x in xtickrange]
 		
-		self.diff_y = self.max_y-self.min_y
-		
+		# y-axis:
 		if self.pso.key_y.range_min is not None:
 			axis_min_y = max(self.min_y, self.pso.key_y.range_min)
 		else:
@@ -298,18 +324,31 @@ class ActivityDataPlotter(ActivityPlotter):
 		else:
 			axis_max_y = self.max_y
 		axis_diff_y = axis_max_y - axis_min_y
-		if axis_diff_y > 0:
-			ytickrange = np.arange(axis_min_y, axis_max_y+axis_diff_y/10, axis_diff_y/10)
+
+		if get_sanitized_value(axis_diff_y) > 0:
+			ytickrange = [axis_min_y+i*(axis_diff_y/num_ticks) for i in range(num_ticks+1)]#np.arange(axis_min_y, axis_max_y+axis_diff_y/10, axis_diff_y/10)
 		else:
 			ytickrange = [axis_min_y]
 		yticklabels = [self.pso.key_y.format(y) for y in ytickrange]
+
+		if self.pso.key_x in AS.TIME_AXES:
+			axis_max_x = get_sanitized_value(axis_max_x)
+			axis_min_x = get_sanitized_value(axis_min_x)
+			axis_diff_x = get_sanitized_value(axis_diff_x)
+			xtickrange = [get_sanitized_value(x) for x in xtickrange]
+
+		if self.pso.key_y in AS.TIME_AXES:
+			axis_max_y = get_sanitized_value(axis_max_y)
+			axis_min_y = get_sanitized_value(axis_min_y)
+			axis_diff_y = get_sanitized_value(axis_diff_y)
+			ytickrange = [get_sanitized_value(y) for y in ytickrange]
 
 		self.axes.set_xlim(axis_min_x-(axis_diff_x/20), axis_max_x+(axis_diff_x/20))
 		self.axes.set_ylim(axis_min_y-(axis_diff_y/20), axis_max_y+(axis_diff_y/20))
 		self.axes.set_xticks(xtickrange, xticklabels, rotation=20)
 		self.axes.set_yticks(ytickrange, yticklabels)
-		self.axes.set_xlabel(self.pso.key_x.label + " ("+self.pso.key_x.unit+")")
-		self.axes.set_ylabel(self.pso.key_y.label + " ("+self.pso.key_y.unit+")")
+		self.axes.set_xlabel(self.pso.key_x.get_label_with_unit())
+		self.axes.set_ylabel(self.pso.key_y.get_label_with_unit())
 
 	def plot_data(self, filenamesuffix:str=""):
 		# init plot:
@@ -317,8 +356,8 @@ class ActivityDataPlotter(ActivityPlotter):
 		self.cm = CM.ColorManager(self, self.pso)
 		if not self.pso.key_color.key in DATA_KEYS_CATEGORICAL+COLOR_KEYS_CATEGORICAL:
 			self._setup_colorbar(self.pso)
+		self._setup_plottype()
 		self._construct_plotdata()
-		self._setup_plot()
 		self._setup_plot_axes()
 
 		# plot data:

@@ -16,9 +16,7 @@
 
 {% block scripts %}
 <script>
-    const axisdim_cont = {{ axisdim_cont | tojson }};
-    const axisdim_cat = {{ axisdim_cat | tojson }};
-    const axisdim_color = {{ axisdim_color | tojson }};
+    const axisspecs = {{ axisspecs | tojson }};
 </script>
 
 <script src="{{ url_for('static', filename='js/select_plotparams.js') }}" defer></script>

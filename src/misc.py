@@ -3,7 +3,7 @@
 
 import os
 import json
-from datetime import datetime, date
+from datetime import timedelta, datetime, date
 import math
 import re
 import gpxpy
@@ -15,6 +15,17 @@ MAP_DEFAULT_ZOOM = 14
 
 date_format = r"\d\d\d\d-\d\d-\d\d"
 date_regex = re.compile(date_format)
+
+def get_sanitized_value(value):
+	'''
+	convert datetime or timedelta values to numeric
+	'''
+	if isinstance(value, timedelta):
+		return value.total_seconds()
+	elif isinstance(value, datetime) or isinstance(value, date):
+		return value.toordinal()
+	else:
+		return value
 
 def check_datestr_format(datestr:str) -> bool:
 	# check if dates are in isoformat (we don't care if dates are actually correct)

@@ -6,8 +6,6 @@ BASE_LINEWIDTH = 1
 # default colors:
 LINECOLORS = ["red", "blue", "green", "purple", "magenta", "orange", "cyan", "pink", "olive"]
 
-#VALID_KEY_TYPES = ["COLOR_KEYS_CATEGORICAL", "COLOR_KEYS_CONTINUOUS", "DATA_KEYS_CATEGORICAL", "DATA_KEYS_CONTINUOUS"]
-
 COLOR_KEYS_CATEGORICAL = [
 	"singular",			# everything the same color
 	"athlete",			# color by athlete
@@ -75,86 +73,3 @@ PLOT_WIDTH = 16
 PLOT_HEIGHT = 9
 PLOT_DPI = 100
 
-
-'''
-KEY_UNITS = {
-	"distance" : "km",
-	"time" : "h:min",
-	"elevation" : "m",
-	"elevation relative" : "m",
-	"elevation gain" : "m",
-	"slope" : "%",
-	"pace" : "min/km",
-	"avg pace" : "min/km",
-	"speed" : "km/h",
-	"avg speed" : "km/h",
-	"date" : "YYYY-MM-DD",
-	"total distance" : "km",
-	"total duration" : "h:min:sec",
-	"total elevation" : "m",
-}
-
-KEY_RANGE_MIN = {
-	"distance" : None,
-	"time" : None,
-	"elevation" : None,
-	"elevation relative" : None,
-	"elevation gain" : 0,
-	"slope" : -0.5,
-	"pace" : 2,
-	"avg pace" : 2,
-	"speed" : 4,
-	"avg speed" : 4,
-	"date" : None,
-	"total distance" : 0,
-	"total duration" : 0,
-	"total elevation" : 0,
-}
-
-KEY_RANGE_MAX = {
-	"distance" : None,
-	"time" : None,
-	"elevation" : None,
-	"elevation relative" : None,
-	"elevation gain" : None,
-	"slope" : 0.5,
-	"pace" : 15,
-	"avg pace" : 15,
-	"speed" : 30,
-	"avg speed" : 30,
-	"date" : None,
-	"total distance" : None,
-	"total duration" : None,
-	"total elevation" : None,
-}
-
-
-def format_data(key, value):
-	if key == "distance":
-		dist_km = value/1000
-		return f"{dist_km:03.1f}"
-	elif key == "time":
-		return format_time_hours(value)
-	elif key == "elevation":
-		return f"{value:.0f}"
-	elif key == "elevation relative":
-		return f"{value:.0f}"
-	elif key == "elevation gain":
-		return f"{value:.0f}"
-	elif key == "slope":
-		slope_pct = value*100
-		return f"{slope_pct:2.0f}"
-	elif key == "pace":
-		return float_to_pace_str(value)
-	elif key == "speed":
-		return f"{value:.1f}"
-	elif key == "date":
-		return datetime.fromtimestamp(value).date()
-	elif key == "total distance":
-		dist_km = value/1000
-		return f"{dist_km:03.1f}"
-	elif key == "total duration":
-		return format_time_hours(value)
-	elif key == "total elevation":
-		return f"{value:.0f}"	
-'''

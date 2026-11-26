@@ -1,7 +1,7 @@
 let plotType = "Lineplot"
-let keyX = axisdim_cont[0]
-let keyY = axisdim_cont[1]
-let keyC = axisdim_color[0]
+//let keyX = axisdim_cont[0]
+//let keyY = axisdim_cont[1]
+//let keyC = axisdim_color[0]
 
 let axisDimSelectionParent = null
 
@@ -10,10 +10,12 @@ function createDimSelectionForm(axis){
 	// Clear existing selection content:
 	axisDimSelectionParent.innerHTML = "";
 
+	let axisOptions = null
+
 	// set which set of options is displayed:
 	if (axis == "c"){
 		// options are possible data sources for color:
-		axisOptions = axisdim_color;
+		axisOptions = Object.values(axisspecs).filter(element => element.color_cat === true);
 		//create Label:
 		label = document.createElement("h3");
 		label.textContent = "Set data source for color:";
@@ -22,11 +24,12 @@ function createDimSelectionForm(axis){
 		// options depend on plotType:
 		if (plotType == "Lineplot"){
 			// datapoint-wise data:
-			axisOptions = axisdim_cont;
+			axisOptions = Object.values(axisspecs).filter(element => element.spacial_cont === true);
+
 		}
 		if (plotType == "Scatterplot"){
 			// activity-wise / aggregated data:
-			axisOptions = axisdim_cat;
+			axisOptions = Object.values(axisspecs).filter(element => element.spacial_cat === true);
 		}
 		//create Label:
 		label = document.createElement("h3");
@@ -41,10 +44,14 @@ function createDimSelectionForm(axis){
 	axisOptions.forEach(dimOption =>{
 		const optionRadio = document.createElement("input");
 		optionRadio.type = "radio";
-		optionRadio.value = dimOption.value;
+		optionRadio.value = dimOption.id;
 		optionRadio.name = "key_"+axis;
 		const optionLabel = document.createElement("label");
-		optionLabel.textContent = dimOption.label;
+		let label = dimOption.label;
+		if (dimOption.unit.length > 0){
+			label = label+ " ("+dimOption.unit+")"
+		}
+		optionLabel.textContent = label;
 		newForm.appendChild(optionRadio);
 		newForm.appendChild(optionLabel);
 		newForm.appendChild(document.createElement("br"));
