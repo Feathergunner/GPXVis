@@ -66,6 +66,7 @@ and ffmpeg (to generate the animations).
   - [ ]  Support aggregate multiple activities (e.g. monthly, yearly).
   - [x]  Lineplot/barplot/scatterplot depending on data.
   - [x]  Meaningful colors.
+- [ ] Generate distribution plots (e.g. barplot of activity-lengths quantities in 5km-bins)
 - [ ] Generate sharepic-style reviews of activities.
 - [ ] Progress bar for uploading activities.
 - [ ] Improve Activity Page:
