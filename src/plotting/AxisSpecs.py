@@ -69,7 +69,8 @@ class AxisSpecs():
 			"spacial_cat" : self.spacial_cat,
 			"spacial_cont" : self.spacial_cont,
 			"color_cat" : self.color_cat,
-			"color_cont" : self.color_cont
+			"color_cont" : self.color_cont,
+			"datasource" : self.datasource.name
 		}
 
 ###########################################################
@@ -495,7 +496,6 @@ AXIS_NOAXIS = AxisSpecs(
 	"",
 	lambda val: None,
 	datasource = AxisDataSource.ACTIVITY_DTO,
-	spacial_cat = True,
 	color_cat = True)
 
 ###########################################################
